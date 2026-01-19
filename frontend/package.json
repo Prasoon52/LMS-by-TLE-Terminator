@@ -29,6 +29,8 @@
     "react-webcam": "^7.2.0",
     "recharts": "^3.6.0",
     "socket.io-client": "^4.8.3",
+    "stream-chat": "^9.28.0",
+    "stream-chat-react": "^13.13.3",
     "tailwindcss": "^4.1.10",
     "tldraw": "^4.2.3"
   },
