@@ -378,6 +378,7 @@ function EditLecture() {
       toast.success("Lecture Updated Successfully");
       navigate(`/createlecture/${courseId}`);
     } catch {
+    } catch {
       toast.error("Update Failed");
     }
     setLoading(false);
