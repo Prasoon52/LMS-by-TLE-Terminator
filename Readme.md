@@ -7,7 +7,7 @@ A full‑stack **Learning Management System (LMS)** built to support teachers an
 ## 🌐 Live Demo
 
 🚀 **Deployed Website:**  
-👉 https://lms-by-tle-terminator.vercel.app/
+👉 https://lms-by-tle-terminator.vercel.app
 
 ---
 
@@ -70,7 +70,7 @@ The platform aims to bridge the gap between teaching plans and classroom executi
 * Course‑aware AI assistant that answers doubts using lecture context
 * Embedding‑based retrieval from course materials
 * Independent chat history per student
-* Pluggable to local LLMs (here we used Ollama) or API models
+* Pluggable to local LLMs or API models
 
 ### 🧠 AI Summary Generator 
 
@@ -189,14 +189,6 @@ Make sure you create `.env` files for backend and frontend as required.
 
 ---
 
-## 🤖 Olama AI Setup
-
-1. Install Ollama from https://ollama.com/
-2. Download a local model
-3. Pull ollama model `ollama pull phi3:mini`
-4. Run the Ollama: `ollama run phi3:mini`
-
----
 ## 📈 Scalability & Extensibility
 
 * Microservice‑friendly architecture — AI layer and Attention Engine scale independently
