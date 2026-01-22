@@ -210,9 +210,9 @@ Built by **TLE Terminator** — focused on impact, usability, and system‑level
 Contributions are welcome. Suggested workflow:
 
 1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit your changes (`git commit -m "feat: add ..."`)
-4. Push and open a pull request
+3. Create a feature branch (`git checkout -b feature/your-feature`)
+4. Commit your changes (`git commit -m "feat: add ..."`)
+5. Push and open a pull request
 
 Please follow the existing code style (ESLint/Prettier if configured) and include meaningful commit messages.
 
@@ -220,9 +220,10 @@ Please follow the existing code style (ESLint/Prettier if configured) and includ
 
 ## ✅ Contact
 
-Prasson Patel
-Abhinav Neema
-Pranav
-Abhas Nath
+1. Prasson Patel
+2. Abhinav Neema
+3. Pranav
+4. Abhas Nath
+
 ---
 
