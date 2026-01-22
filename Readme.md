@@ -4,6 +4,13 @@ A full‑stack **Learning Management System (LMS)** built to support teachers an
 
 ---
 
+## 🌐 Live Demo
+
+🚀 **Deployed Website:**  
+👉 https://lms-by-tle-terminator.vercel.app/
+
+---
+
 ## 🚀 Overview
 
 LMS by TLE Terminator is a modern web platform that enables:
