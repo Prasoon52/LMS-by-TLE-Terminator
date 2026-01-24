@@ -2,23 +2,25 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const port = 3000;
+//import connectDb from "./configs/db.js"
+//import dotenv from "dotenv"
+app.use(cors()); 
+app.use(express.json());
+//dotenv.config()
 
-app.use(cors()); // Allow frontend to connect
-app.use(express.json()); // Allow server to read JSON data
-
-// A simple "database" (just an array for now)
 let users = [
     { id: 1, name: "Alice" },
     { id: 2, name: "Bob" }
 ];
 
 
-// Define an API Endpoint (The route the frontend will call)
+
 app.get('/api/users', (req, res) => {
-    res.json(users); // Send the data back to the frontend
+    res.json(users); 
 });
 
-// Start the server
+
 app.listen(port, () => {
+    //connectDb();
     console.log(`Server running at http://localhost:${port}`);
 });
