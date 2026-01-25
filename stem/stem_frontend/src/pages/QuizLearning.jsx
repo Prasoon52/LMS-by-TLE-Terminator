@@ -72,7 +72,7 @@ export default function QuizLearning() {
   const fetchTopics = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API}/${subject}/topics`);
+      const response = await axios.get(`${API}/quiz/${subject}/topics`);
       setAllTopics(response.data || []);
       setFilteredTopics(response.data || []);
     } catch (error) {
@@ -104,9 +104,8 @@ export default function QuizLearning() {
 
     try {
       const response = await axios.get(
-        `${API}/${subject}/problems/${topic._id}`,
+        `${API}/quiz/${subject}/problems/${topic._id}`,
       );
-      // ensure we have an array
       const data = Array.isArray(response.data) ? response.data : [];
       setProblems(data);
       setCurrentProblem(0);
@@ -122,7 +121,6 @@ export default function QuizLearning() {
       return;
     }
 
-    // safety: ensure problem exists
     const problem = problems[currentProblem];
     if (!problem) {
       toast.error("No problem selected or problems not loaded.");
@@ -130,9 +128,8 @@ export default function QuizLearning() {
     }
 
     try {
-      // use POST or GET as your backend supports both
       const response = await axios.post(
-        `${API}/${subject}/check-answer?problem_id=${problem._id}&user_answer=${encodeURIComponent(
+        `${API}/quiz/${subject}/check-answer?problem_id=${problem._id}&user_answer=${encodeURIComponent(
           userAnswer,
         )}`,
       );
@@ -163,7 +160,6 @@ export default function QuizLearning() {
   };
 
   if (!config) {
-    // navigation in useEffect will handle redirect; render nothing for a moment
     return null;
   }
 

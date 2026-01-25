@@ -33,6 +33,14 @@ const SUBJECT_CONFIG = {
     gradient: "from-cyan-500 to-blue-600",
     bg: "from-cyan-900 via-cyan-800/90 to-cyan-900/50",
   },
+  math: {
+    title: "Math Lab",
+    subtitle: "Visualise mathematical concepts in real life.",
+    icon: Zap,
+    badge: "Math Lab",
+    gradient: "from-purple-500 to-pink-600",
+    bg: "from-purple-900 via-purple-800/90 to-purple-900/50",
+  }
 };
 
 export default function ExperimentLab() {

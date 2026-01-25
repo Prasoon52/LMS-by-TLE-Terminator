@@ -121,6 +121,15 @@ export default function Dashboard() {
           bgImage: "https://images.unsplash.com/photo-1555949963-aa79dcee981c",
           path: "/experiment/computer",
         },
+        {
+          id: "math",
+          title: "Math Lab",
+          description: "Visualise in real lifr.",
+          icon: TrendingUp,
+          color: "from-cyan-500 to-blue-600",
+          bgImage: "https://images.unsplash.com/photo-1555949963-aa79dcee981c",
+          path: "/experiment/math",
+        },
       ],
     },
   ];
