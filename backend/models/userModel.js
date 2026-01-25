@@ -45,21 +45,22 @@ const userSchema = new mongoose.Schema(
 
     interests: { type: [String], default: [] },
     skills: { type: [String], default: [] },
-    preferredFields: { type: [String], default: [] },
+      preferredFields: { type: [String], default: [] },
     socialLinks: {
       linkedin: { type: String, default: null },
       github: { type: String, default: null },
       twitter: { type: String, default: null },
       personalWebsite: { type: String, default: null },
     },
-
+    
+    
+    // Gamification Fields
     xp: { type: Number, default: 0 },
     rank: { type: String, default: "Novice" },
-    completedLectures: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Lecture" },
-    ],
+    completedLectures: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Lecture' }],
+
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 const User = mongoose.model("User", userSchema);
