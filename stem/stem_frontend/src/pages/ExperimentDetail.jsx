@@ -27,6 +27,10 @@ const SUBJECT_UI = {
     color: "#38bdf8",
     label: "Computer",
   },
+  math: {
+    color: "#a855f7",
+    label: "Math",
+  }
 };
 
 export default function ExperimentDetail() {
