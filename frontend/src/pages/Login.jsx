@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import logo from "../assets/logo.jpg";
 import google from "../assets/google.jpg";
@@ -76,7 +77,8 @@ function Login() {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[650px]">
+        className="w-full max-w-5xl bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[650px]"
+      >
         {/* --- LEFT SIDE: FORM --- */}
         <div className="w-full md:w-1/2 p-8 md:p-16 flex flex-col justify-center relative">
           <div className="mb-10">
@@ -84,21 +86,24 @@ function Login() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="font-black text-slate-900 text-4xl mb-3 tracking-tight">
+              className="font-black text-slate-900 text-4xl mb-3 tracking-tight"
+            >
               Welcome Back
             </motion.h1>
             <motion.p
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-slate-500 text-sm font-medium">
+              className="text-slate-500 text-sm font-medium"
+            >
               Enter your credentials to access your workspace.
             </motion.p>
           </div>
 
           <form
             className="flex flex-col gap-6"
-            onSubmit={(e) => e.preventDefault()}>
+            onSubmit={(e) => e.preventDefault()}
+          >
             {/* Email Input */}
             <div className="space-y-2">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1">
@@ -124,7 +129,8 @@ function Login() {
                 </label>
                 <span
                   className="text-[11px] font-bold text-blue-600 cursor-pointer hover:text-blue-800 transition-colors"
-                  onClick={() => navigate("/forgotpassword")}>
+                  onClick={() => navigate("/forgotpassword")}
+                >
                   Forgot Password?
                 </span>
               </div>
@@ -139,7 +145,8 @@ function Login() {
                 />
                 <div
                   className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-slate-400 hover:text-blue-600 transition-colors"
-                  onClick={() => setShow(!show)}>
+                  onClick={() => setShow(!show)}
+                >
                   {show ? (
                     <MdRemoveRedEye size={20} />
                   ) : (
@@ -155,7 +162,8 @@ function Login() {
               whileTap={{ scale: 0.98 }}
               className="w-full h-12 bg-slate-900 hover:bg-blue-900 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-xl shadow-slate-200 transition-all flex items-center justify-center mt-2"
               disabled={loading}
-              onClick={handleLogin}>
+              onClick={handleLogin}
+            >
               {loading ? <ClipLoader size={20} color="white" /> : "Sign In"}
             </motion.button>
 
@@ -173,7 +181,8 @@ function Login() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="w-full h-12 border-2 border-slate-100 rounded-xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-200 transition-all"
-              onClick={googleLogin}>
+              onClick={googleLogin}
+            >
               <img src={google} alt="Google" className="w-5" />
               <span className="text-sm font-bold text-slate-600">
                 Google Account
@@ -184,7 +193,8 @@ function Login() {
               New to TLE?{" "}
               <span
                 className="text-blue-600 cursor-pointer hover:underline"
-                onClick={() => navigate("/signup")}>
+                onClick={() => navigate("/signup")}
+              >
                 Create an account
               </span>
             </div>
@@ -202,7 +212,8 @@ function Login() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", stiffness: 100, delay: 0.2 }}
-              className="p-1.5 rounded-full border-2 border-white/20 shadow-2xl mb-8">
+              className="p-1.5 rounded-full border-2 border-white/20 shadow-2xl mb-8"
+            >
               <img
                 src={logo}
                 className="w-32 h-32 rounded-full object-cover border-4 border-slate-900"
@@ -214,7 +225,8 @@ function Login() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-3xl font-black mb-4 tracking-tight">
+              className="text-3xl font-black mb-4 tracking-tight"
+            >
               TLE Terminators
             </motion.h2>
 
@@ -222,7 +234,8 @@ function Login() {
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="text-blue-100/80 text-center text-sm leading-relaxed max-w-sm font-medium">
+              className="text-blue-100/80 text-center text-sm leading-relaxed max-w-sm font-medium"
+            >
               Experience a new era of learning management. Track, analyze, and
               grow with precision tools designed for educators.
             </motion.p>

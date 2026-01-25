@@ -1,3 +1,4 @@
+
 import axios from "axios";
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -101,6 +102,7 @@ function EditProfile() {
       navigate("/profile");
     } catch {
       toast.error("Profile update failed");
+
     } finally {
       setLoading(false);
     }
@@ -117,7 +119,8 @@ function EditProfile() {
         whileHover={{ scale: 1.1, x: -5 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => navigate("/profile")}
-        className="fixed top-6 left-6 z-50 bg-white/90 backdrop-blur-md shadow-lg border border-slate-200 text-slate-800 p-4 rounded-2xl hover:border-amber-400 transition-all">
+        className="fixed top-6 left-6 z-50 bg-white/90 backdrop-blur-md shadow-lg border border-slate-200 text-slate-800 p-4 rounded-2xl hover:border-amber-400 transition-all"
+      >
         <FaArrowLeft />
       </motion.button>
 
@@ -125,7 +128,8 @@ function EditProfile() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-6xl mx-auto">
+        className="max-w-6xl mx-auto"
+      >
         <div className="text-center mb-10">
           <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
             Edit{" "}
@@ -158,7 +162,8 @@ function EditProfile() {
                     />
                     <label
                       htmlFor="photo-upload"
-                      className="absolute bottom-2 right-2 bg-amber-400 text-white p-3 rounded-full shadow-lg cursor-pointer hover:bg-amber-500 transition-colors border-4 border-white">
+                      className="absolute bottom-2 right-2 bg-amber-400 text-white p-3 rounded-full shadow-lg cursor-pointer hover:bg-amber-500 transition-colors border-4 border-white"
+                    >
                       <FaCamera />
                     </label>
                     <input
@@ -320,7 +325,8 @@ function EditProfile() {
                   whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={loading}
-                  className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all">
+                  className="w-full md:w-auto px-10 py-4 bg-gradient-to-r from-amber-400 to-amber-600 text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl flex items-center justify-center gap-3 transition-all"
+                >
                   {loading ? (
                     <ClipLoader size={24} color="white" />
                   ) : (
@@ -374,13 +380,15 @@ const TagInput = ({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             key={item}
-            className={`px-4 py-2 text-xs font-bold rounded-lg text-white flex items-center gap-2 shadow-md ${color}`}>
+            className={`px-4 py-2 text-xs font-bold rounded-lg text-white flex items-center gap-2 shadow-md ${color}`}
+          >
             {item}
             {/* IMPORTANT FIX: ADD type="button" */}
             <button
               type="button"
               onClick={() => remove(item)}
-              className="bg-white/20 hover:bg-white/40 rounded-full w-4 h-4 flex items-center justify-center transition-colors">
+              className="bg-white/20 hover:bg-white/40 rounded-full w-4 h-4 flex items-center justify-center transition-colors"
+            >
               ×
             </button>
           </motion.span>
@@ -393,7 +401,8 @@ const TagInput = ({
 const SocialInput = ({ icon, placeholder, value, onChange, color }) => (
   <div className="group relative">
     <div
-      className={`absolute left-4 top-1/2 -translate-y-1/2 ${color} transition-transform group-focus-within:scale-110`}>
+      className={`absolute left-4 top-1/2 -translate-y-1/2 ${color} transition-transform group-focus-within:scale-110`}
+    >
       {icon}
     </div>
     <input

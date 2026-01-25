@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -47,7 +48,8 @@ function Profile() {
         target="_blank"
         rel="noopener noreferrer"
         whileHover={{ scale: 1.15, y: -2, color: "#2563eb" }}
-        className="text-xl text-slate-400 transition-all p-3 bg-slate-50 rounded-xl hover:bg-white hover:shadow-lg border border-slate-100">
+        className="text-xl text-slate-400 transition-all p-3 bg-slate-50 rounded-xl hover:bg-white hover:shadow-lg border border-slate-100"
+      >
         {icons[platform]}
       </motion.a>
     );
@@ -63,7 +65,8 @@ function Profile() {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative max-w-5xl w-full rounded-[3rem] bg-white/80 backdrop-blur-2xl shadow-[0_30px_60px_-10px_rgba(30,41,59,0.08)] border border-white overflow-hidden">
+        className="relative max-w-5xl w-full rounded-[3rem] bg-white/80 backdrop-blur-2xl shadow-[0_30px_60px_-10px_rgba(30,41,59,0.08)] border border-white overflow-hidden"
+      >
         {/* --- Header Gradient --- */}
         <div className="h-48 bg-gradient-to-r from-slate-900 via-[#0f172a] to-slate-900 relative overflow-hidden">
           {/* Decorative Pattern */}
@@ -110,7 +113,8 @@ function Profile() {
 
               {/* Rank Badge */}
               <div
-                className={`absolute -bottom-3 -right-3 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-4 border-white ${rankColors[userData?.rank || "Unranked"]}`}>
+                className={`absolute -bottom-3 -right-3 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg border-4 border-white ${rankColors[userData?.rank || "Unranked"]}`}
+              >
                 {userData?.rank || "Rookie"}
               </div>
             </div>
@@ -135,7 +139,8 @@ function Profile() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => navigate("/editprofile")}
-                  className="hidden md:flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-xl hover:shadow-2xl transition-all">
+                  className="hidden md:flex items-center gap-2 px-8 py-3.5 rounded-2xl font-bold text-sm bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-xl hover:shadow-2xl transition-all"
+                >
                   <FaPen size={12} className="text-amber-400" /> Edit Profile
                 </motion.button>
               </div>
@@ -203,7 +208,8 @@ function Profile() {
                     userData.skills.map((skill, i) => (
                       <span
                         key={i}
-                        className="px-4 py-2 text-xs font-bold rounded-xl bg-white border border-slate-100 text-slate-700 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+                        className="px-4 py-2 text-xs font-bold rounded-xl bg-white border border-slate-100 text-slate-700 shadow-[0_2px_10px_rgba(0,0,0,0.03)]"
+                      >
                         {skill}
                       </span>
                     ))
@@ -226,7 +232,8 @@ function Profile() {
                       userData.interests.map((interest, i) => (
                         <span
                           key={i}
-                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-100">
+                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-blue-50 text-blue-700 border border-blue-100"
+                        >
                           {interest}
                         </span>
                       ))
@@ -248,7 +255,8 @@ function Profile() {
                       userData.preferredFields.map((field, i) => (
                         <span
                           key={i}
-                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-50 text-amber-700 border border-amber-100">
+                          className="px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-50 text-amber-700 border border-amber-100"
+                        >
                           {field}
                         </span>
                       ))
@@ -268,7 +276,8 @@ function Profile() {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/editprofile")}
-              className="w-full py-4 rounded-2xl font-black text-white bg-slate-900 shadow-xl flex items-center justify-center gap-2">
+              className="w-full py-4 rounded-2xl font-black text-white bg-slate-900 shadow-xl flex items-center justify-center gap-2"
+            >
               <FaPen size={12} className="text-amber-400" /> Edit Profile
             </motion.button>
           </div>
