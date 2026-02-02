@@ -27,16 +27,16 @@ export const updateProgress = async (req, res) => {
 
         // Check if already completed
         if (user.completedLectures.some(id => id.equals(lectureObjectId))) {
+            // Populate before returning even if no change
+            await user.populate("enrolledCourses");
             return res.status(200).json({ success: true, user }); 
         }
 
         user.completedLectures.push(lectureObjectId);
         
-        // --- CRITICAL FIX HERE ---
         // Prevents "NaN" if user.xp is undefined in the database
         user.xp = (user.xp || 0) + 50; 
-        // -------------------------
-
+        
         // Rank Logic
         let newRank = "Novice";
         if (user.xp >= 1500) newRank = "Terminator";
@@ -46,11 +46,14 @@ export const updateProgress = async (req, res) => {
         
         user.rank = newRank;
         
-        // Save is now safe because XP is guaranteed to be a valid Number
         await user.save();
+
+        // FIX: Populate enrolledCourses before sending back to frontend
+        await user.populate("enrolledCourses");
 
         res.status(200).json({ success: true, user }); 
     } catch (error) {
+        console.error(error);
         res.status(500).json({ message: "Error updating progress" });
     }
 };
@@ -83,8 +86,6 @@ export const UpdateProfile = async (req, res) => {
       ? JSON.parse(req.body.preferredFields)
       : [];
     
-
-
     const updateData = {
       name,
       description,
@@ -103,7 +104,9 @@ export const UpdateProfile = async (req, res) => {
       userId,
       { $set: updateData },
       { new: true, runValidators: true }
-    ).select("-password"); 
+    )
+    .select("-password")
+    .populate("enrolledCourses"); // FIX: Populate here too
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });

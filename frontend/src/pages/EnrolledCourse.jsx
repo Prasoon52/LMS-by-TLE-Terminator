@@ -1,14 +1,35 @@
-
-import React from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { FaArrowLeftLong } from "react-icons/fa6";
 import { FaPlay, FaLayerGroup, FaSearch, FaCrown } from "react-icons/fa";
 import { motion } from "framer-motion";
+import axios from "axios";
+import { serverUrl } from "../App";
+import { setUserData } from "../redux/userSlice";
 
 function EnrolledCourse() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
+
+  // --- FIX: Force Fetch Latest Data on Mount ---
+  useEffect(() => {
+    const fetchFreshUserData = async () => {
+      try {
+        const result = await axios.get(`${serverUrl}/api/user/currentuser`, {
+          withCredentials: true,
+        });
+        // This updates Redux with the fully populated enrolledCourses
+        dispatch(setUserData(result.data));
+      } catch (error) {
+        console.error("Failed to refresh user data", error);
+      }
+    };
+
+    fetchFreshUserData();
+  }, [dispatch]); // Runs once when this page opens
+  // ---------------------------------------------
 
   // Staggered Animation Variants
   const containerVariants = {
@@ -45,7 +66,6 @@ function EnrolledCourse() {
             whileHover={{ scale: 1.1, x: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => navigate("/")}
-            // Dark text on light background for visibility
             className="absolute left-0 top-1/2 -translate-y-1/2 hidden md:flex w-12 h-12 items-center justify-center bg-white shadow-md rounded-2xl text-slate-600 border border-slate-100 transition-all z-20 hover:text-blue-600"
           >
             <FaArrowLeftLong />
@@ -73,7 +93,6 @@ function EnrolledCourse() {
               </span>
             </motion.div>
 
-            {/* Title - Dark Text for Light Background */}
             <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">
               My Enrolled{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
@@ -84,7 +103,10 @@ function EnrolledCourse() {
         </div>
 
         {/* --- Content Area --- */}
-        {userData.enrolledCourses.length === 0 ? (
+        {/* CHECK 1: Ensure userData exists */}
+        {!userData ? (
+            <div className="flex justify-center pt-20">Loading...</div>
+        ) : userData.enrolledCourses.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -118,62 +140,63 @@ function EnrolledCourse() {
             animate="show"
             className="grid gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
           >
-            {userData.enrolledCourses.map((course) => (
-              <motion.div
-                key={course._id}
-                variants={itemVariants}
-                whileHover={{
-                  y: -10,
-                  boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)",
-                }}
-                className="bg-white rounded-[2.5rem] shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden flex flex-col h-full group cursor-pointer relative"
-                onClick={() => navigate(`/viewlecture/${course._id}`)}
-              >
-                {/* Image Section - No Text Overlays */}
-                <div className="relative h-52 overflow-hidden">
-                  <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-all duration-500 z-10" />
-                  <img
-                    src={course.thumbnail}
-                    alt={course.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
+            {userData.enrolledCourses.map((course) => {
+              // CHECK 2: Handle case where course might still be loading or null
+              if (!course || !course.title) return null;
 
-                  {/* Play Overlay */}
-                  <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="w-14 h-14 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
-                      <FaPlay className="text-blue-600 ml-1" />
+              return (
+                <motion.div
+                  key={course._id}
+                  variants={itemVariants}
+                  whileHover={{
+                    y: -10,
+                    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.1)",
+                  }}
+                  className="bg-white rounded-[2.5rem] shadow-lg shadow-slate-200/50 border border-slate-100 overflow-hidden flex flex-col h-full group cursor-pointer relative"
+                  onClick={() => navigate(`/viewlecture/${course._id}`)}
+                >
+                  {/* Image Section */}
+                  <div className="relative h-52 overflow-hidden bg-gray-200">
+                    <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 transition-all duration-500 z-10" />
+                    <img
+                      src={course.thumbnail}
+                      alt={course.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+
+                    {/* Play Overlay */}
+                    <div className="absolute inset-0 z-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="w-14 h-14 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                        <FaPlay className="text-blue-600 ml-1" />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Content Section */}
-                <div className="p-7 flex flex-col flex-1">
-                  <div className="flex-1 space-y-3">
-                    {/* Level Tag */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <FaLayerGroup className="text-amber-500 text-xs" />
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        {course.level} Level
-                      </span>
+                  {/* Content Section */}
+                  <div className="p-7 flex flex-col flex-1">
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FaLayerGroup className="text-amber-500 text-xs" />
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          {course.level} Level
+                        </span>
+                      </div>
+
+                      <h2 className="text-lg font-black text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-700 transition-colors">
+                        {course.title}
+                      </h2>
                     </div>
 
-                    <h2 className="text-lg font-black text-slate-900 line-clamp-2 leading-snug group-hover:text-blue-700 transition-colors">
-                      {course.title}
-                    </h2>
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
+                      className="mt-6 w-full py-3.5 rounded-2xl font-bold text-white bg-slate-900 shadow-lg group-hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]"
+                    >
+                      <FaPlay size={10} /> Continue Learning
+                    </motion.button>
                   </div>
-
-                  {/* Progress Section Removed */}
-
-                  {/* CTA Button */}
-                  <motion.button
-                    whileTap={{ scale: 0.95 }}
-                    className="mt-6 w-full py-3.5 rounded-2xl font-bold text-white bg-slate-900 shadow-lg group-hover:bg-blue-600 transition-colors flex items-center justify-center gap-2 uppercase tracking-widest text-[10px]"
-                  >
-                    <FaPlay size={10} /> Continue Learning
-                  </motion.button>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
       </div>
