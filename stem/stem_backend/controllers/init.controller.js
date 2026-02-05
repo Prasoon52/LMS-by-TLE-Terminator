@@ -279,7 +279,7 @@ export const initData = async (req, res) => {
     {
       subject: "math",
       topic_id: topics[3]._id,
-      question: "What is 1/2 + 1/4?",
+      question: "What is 1/2 + 1/4?(give answer in simplest fraction)",
       answer: "3/4",
       difficulty: "medium",
       explanation: "Common denominator",
@@ -287,7 +287,7 @@ export const initData = async (req, res) => {
     {
       subject: "math",
       topic_id: topics[3]._id,
-      question: "What is 3/4 - 1/4?",
+      question: "What is 3/4 - 1/4?(give answer in simplest fraction)",
       answer: "1/2",
       difficulty: "medium",
       explanation: "Subtract fractions",
