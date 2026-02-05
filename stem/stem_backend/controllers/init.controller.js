@@ -9,6 +9,7 @@ export const initData = async (req, res) => {
 
   /* ---------------- MATH TOPICS ---------------- */
   const topics = await Topic.insertMany([
+    
     {
       subject: "math",
       title: "Addition & Subtraction",
@@ -66,6 +67,12 @@ export const initData = async (req, res) => {
       description: "Length, weight, volume, and time",
     },
   ]);
+
+  // ✅ Create safe math topic map (do NOT rely on array index)
+  const mathTopicMap = {};
+  topics.forEach((t) => {
+    mathTopicMap[t.title] = t._id;
+  });
 
   /* ---------------- SCIENCE TOPICS ---------------- */
   const scienceTopics = await Topic.insertMany([
@@ -192,7 +199,7 @@ export const initData = async (req, res) => {
     // Addition & Subtraction
     {
       subject: "math",
-      topic_id: topics[0]._id,
+      topic_id: mathTopicMap["Addition & Subtraction"],
       question: "What is 15 + 23?",
       answer: "38",
       difficulty: "easy",
@@ -200,7 +207,7 @@ export const initData = async (req, res) => {
     },
     {
       subject: "math",
-      topic_id: topics[0]._id,
+      topic_id: mathTopicMap["Addition & Subtraction"],
       question: "What is 50 - 17?",
       answer: "33",
       difficulty: "easy",
@@ -208,7 +215,7 @@ export const initData = async (req, res) => {
     },
     {
       subject: "math",
-      topic_id: topics[0]._id,
+      topic_id: mathTopicMap["Addition & Subtraction"],
       question: "What is 120 + 45?",
       answer: "165",
       difficulty: "easy",
@@ -216,7 +223,7 @@ export const initData = async (req, res) => {
     },
     {
       subject: "math",
-      topic_id: topics[0]._id,
+      topic_id: mathTopicMap["Addition & Subtraction"],
       question: "What is 200 - 89?",
       answer: "111",
       difficulty: "easy",
@@ -226,7 +233,7 @@ export const initData = async (req, res) => {
     // Multiplication
     {
       subject: "math",
-      topic_id: topics[1]._id,
+      topic_id: mathTopicMap["Multiplication Tables"],
       question: "What is 7 × 8?",
       answer: "56",
       difficulty: "easy",
@@ -234,7 +241,7 @@ export const initData = async (req, res) => {
     },
     {
       subject: "math",
-      topic_id: topics[1]._id,
+      topic_id: mathTopicMap["Multiplication Tables"],
       question: "What is 12 × 6?",
       answer: "72",
       difficulty: "easy",
@@ -242,7 +249,7 @@ export const initData = async (req, res) => {
     },
     {
       subject: "math",
-      topic_id: topics[1]._id,
+      topic_id: mathTopicMap["Multiplication Tables"],
       question: "What is 9 × 9?",
       answer: "81",
       difficulty: "easy",
@@ -250,7 +257,7 @@ export const initData = async (req, res) => {
     },
     {
       subject: "math",
-      topic_id: topics[1]._id,
+      topic_id: mathTopicMap["Multiplication Tables"],
       question: "What is 15 × 4?",
       answer: "60",
       difficulty: "easy",
@@ -260,7 +267,7 @@ export const initData = async (req, res) => {
     // Division
     {
       subject: "math",
-      topic_id: topics[2]._id,
+      topic_id: mathTopicMap["Division Basics"],
       question: "What is 24 ÷ 6?",
       answer: "4",
       difficulty: "medium",
@@ -268,7 +275,7 @@ export const initData = async (req, res) => {
     },
     {
       subject: "math",
-      topic_id: topics[2]._id,
+      topic_id: mathTopicMap["Division Basics"],
       question: "What is 81 ÷ 9?",
       answer: "9",
       difficulty: "medium",
@@ -278,7 +285,7 @@ export const initData = async (req, res) => {
     // Fractions
     {
       subject: "math",
-      topic_id: topics[3]._id,
+      topic_id: mathTopicMap["Fractions"],
       question: "What is 1/2 + 1/4?(give answer in simplest fraction)",
       answer: "3/4",
       difficulty: "medium",
@@ -286,11 +293,83 @@ export const initData = async (req, res) => {
     },
     {
       subject: "math",
-      topic_id: topics[3]._id,
+      topic_id: mathTopicMap["Fractions"],
       question: "What is 3/4 - 1/4?(give answer in simplest fraction)",
       answer: "1/2",
       difficulty: "medium",
       explanation: "Subtract fractions",
+    },
+
+    // Basic Algebra
+    {
+      subject: "math",
+      topic_id: mathTopicMap["Basic Algebra"],
+      question: "Solve for x: x + 5 = 12",
+      answer: "7",
+      difficulty: "hard",
+      explanation: "Subtract 5 from both sides",
+    },
+    {
+      subject: "math",
+      topic_id: mathTopicMap["Basic Algebra"],
+      question: "Solve for x: 3x = 15",
+      answer: "5",
+      difficulty: "hard",
+      explanation: "Divide both sides by 3",
+    },
+
+    // Geometry Shapes
+    {
+      subject: "math",
+      topic_id: mathTopicMap["Geometry Shapes"],
+      question: "How many sides does a triangle have?",
+      answer: "3",
+      difficulty: "easy",
+      explanation: "A triangle has three sides",
+    },
+    {
+      subject: "math",
+      topic_id: mathTopicMap["Geometry Shapes"],
+      question: "Which shape has four equal sides?",
+      answer: "Square",
+      difficulty: "easy",
+      explanation: "All sides of a square are equal",
+    },
+
+    // Angles & Lines
+    {
+      subject: "math",
+      topic_id: mathTopicMap["Angles & Lines"],
+      question: "What is the measure of a right angle?",
+      answer: "90",
+      difficulty: "medium",
+      explanation: "A right angle is 90 degrees",
+    },
+    {
+      subject: "math",
+      topic_id: mathTopicMap["Angles & Lines"],
+      question: "How many degrees are there in a straight line?",
+      answer: "180",
+      difficulty: "medium",
+      explanation: "Straight angle equals 180 degrees",
+    },
+
+    // Measurement
+    {
+      subject: "math",
+      topic_id: mathTopicMap["Measurement"],
+      question: "How many centimeters make one meter?",
+      answer: "100",
+      difficulty: "easy",
+      explanation: "1 meter = 100 centimeters",
+    },
+    {
+      subject: "math",
+      topic_id: mathTopicMap["Measurement"],
+      question: "Which unit is used to measure weight?",
+      answer: "Kilogram",
+      difficulty: "easy",
+      explanation: "Kilogram measures weight",
     },
   ]);
 
