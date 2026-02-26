@@ -2,13 +2,16 @@ import { generateSchedule } from "../services/aiScheduler.service.js";
 
 export const aiSchedulerController = async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { structuredData } = req.body;
 
-    const result = await generateSchedule(messages);
+    if (!structuredData?.subjects?.length) {
+      return res.status(400).json({ error: "At least one subject is required" });
+    }
 
-    res.status(200).json(result);
+    const schedule = await generateSchedule(structuredData);
+    return res.status(200).json({ schedule });
   } catch (error) {
     console.error("Scheduler Error:", error);
-    res.status(500).json({ error: "Failed to generate schedule" });
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 };
