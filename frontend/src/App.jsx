@@ -29,6 +29,9 @@ import Career from './pages/Career'
 import EditQuiz from './pages/admin/EditQuiz'
 import StudentDashboard from './pages/StudentDashboard'
 
+import TeacherArena from './pages/live-quiz/TeacherArena';
+import StudentArena from './pages/live-quiz/StudentArena';
+
 import LiveClassDashboard from './pages/LiveClassDashboard';
 
 
@@ -51,6 +54,17 @@ function App() {
       <ToastContainer />
       <ScrollToTop />
       <Routes>
+        <Route 
+          path="/live-arena/host" 
+           element={userData?.role === "educator" ? <TeacherArena /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/live-arena/join" 
+          element={userData ? <StudentArena /> : <Navigate to="/login" />} 
+          />
+
+             
+
         <Route 
           path="/live-schedule" 
           element={userData ? <LiveClassDashboard /> : <Navigate to="/login" />} 
