@@ -2,13 +2,17 @@ import { generateSchedule } from "../services/aiScheduler.service.js";
 
 export const aiSchedulerController = async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { structuredData } = req.body;
 
-    const result = await generateSchedule(messages);
+    if (!structuredData || !structuredData.subjects?.length) {
+      return res.status(400).json({ error: "No subjects provided for Groq to process." });
+    }
 
-    res.status(200).json(result);
+    const schedule = await generateSchedule(structuredData);
+    
+    return res.status(200).json({ schedule });
   } catch (error) {
-    console.error("Scheduler Error:", error);
-    res.status(500).json({ error: "Failed to generate schedule" });
+    console.error("Controller Error:", error);
+    return res.status(500).json({ error: "Internal Server Error during AI generation." });
   }
 };
