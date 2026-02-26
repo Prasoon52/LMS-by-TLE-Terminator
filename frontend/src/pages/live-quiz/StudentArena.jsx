@@ -32,6 +32,9 @@ const StudentArena = () => {
         console.error("Socket Connection Error:", err.message);
         setSocketError(`Connection Failed: ${err.message}. (Check Backend CORS)`);
     });
+    socket.on("error_msg", (data) => {
+        alert(`Host Server says: ${data.message}`);
+    });
 
     socket.on("connect", () => {
         setSocketError(""); // Clear errors on successful connect
