@@ -11,7 +11,7 @@ import aiRouter from "./routes/aiRoute.js"
 import reviewRouter from "./routes/reviewRoute.js"
 import attentionRouter from "./routes/attentionRoute.js"
 import uploadRouter from "./routes/upload.js"
-
+import aiSchedulerRoute from "./routes/aiScheduler.route.js";
 import quizRouter from "./routes/quizRoute.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import http from "http";
@@ -48,7 +48,7 @@ app.use("/api/quiz", quizRouter);
 app.use("/api/chat", chatRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/chatai", aiChatRoute);
-
+app.use("/api/ai-scheduler", aiSchedulerRoute);
 app.use("/api/summary", summaryRouter);
 
 
