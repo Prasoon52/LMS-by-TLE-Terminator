@@ -1,88 +1,46 @@
-const timeToMinutes = (t) => {
-  const [h, m] = t.split(":").map(Number);
-  return h * 60 + m;
-};
+import Groq from "groq-sdk";
 
-const minutesToTime = (mins) => {
-  const h = Math.floor(mins / 60).toString().padStart(2, "0");
-  const m = (mins % 60).toString().padStart(2, "0");
-  return `${h}:${m}`;
-};
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export const generateSchedule = async (structuredData) => {
-  if (!structuredData || !structuredData.subjects) {
-    throw new Error("Invalid structuredData provided");
-  }
+  const { subjects, weakSubjects, freeTimeSlots, offDays } = structuredData;
 
-  const { subjects, weakSubjects = [], freeTimeSlots, offDays = [] } = structuredData;
-  const schedule = {
-    Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [], Sunday: []
-  };
+  const prompt = `
+    Act as an Advanced Study Architect. Create a high-performance study schedule.
+    
+    DATA:
+    - Master Subjects: ${subjects.join(", ")}
+    - Weak Subjects (Higher Fatigue): ${weakSubjects.join(", ")}
+    - Available Slots: ${JSON.stringify(freeTimeSlots)}
+    - Global Off Days: ${offDays.join(", ")}
 
-  if (!subjects.length) return schedule;
+    INTELLIGENT BREAK LOGIC:
+    1. Weak Subjects: Allot 45-60 min blocks followed by a 15 min "Neural Recovery" break.
+    2. Strong Subjects: Allot 90 min deep-work blocks followed by a 10 min break.
+    3. If a slot is > 2 hours, split it into multiple sessions with a mandatory "Power Break".
+    4. NO study sessions on Off Days.
 
-  // Weight subjects
-  const weightedSubjects = [];
-  subjects.forEach(sub => {
-    weightedSubjects.push(sub);
-    if (weakSubjects.includes(sub)) weightedSubjects.push(sub);
-  });
-
-  let subjectPointer = 0;
-
-  for (const day of Object.keys(schedule)) {
-    if (offDays.includes(day)) continue;
-
-    const slots = freeTimeSlots[day] || [];
-    for (const slot of slots) {
-      let start = timeToMinutes(slot.start);
-      let end = timeToMinutes(slot.end);
-      let duration = end - start;
-
-      // Logic: If slot > 120 mins (2h), split with a 15 min break
-      if (duration > 120) {
-        const studyChunk = Math.floor(duration / 2) - 7; 
-        
-        // Session 1
-        const sub1 = weightedSubjects[subjectPointer++ % weightedSubjects.length];
-        schedule[day].push({
-          start: minutesToTime(start),
-          end: minutesToTime(start + studyChunk),
-          subject: sub1,
-          activity: `Deep dive into ${sub1}`,
-          type: "study"
-        });
-
-        // Break
-        schedule[day].push({
-          start: minutesToTime(start + studyChunk),
-          end: minutesToTime(start + studyChunk + 15),
-          subject: "Break",
-          activity: "Stretch and hydrate",
-          type: "break"
-        });
-
-        // Session 2
-        const sub2 = weightedSubjects[subjectPointer++ % weightedSubjects.length];
-        schedule[day].push({
-          start: minutesToTime(start + studyChunk + 15),
-          end: minutesToTime(end),
-          subject: sub2,
-          activity: `Practice ${sub2} problems`,
-          type: "study"
-        });
-      } else {
-        // Single session for shorter slots
-        const sub = weightedSubjects[subjectPointer++ % weightedSubjects.length];
-        schedule[day].push({
-          start: minutesToTime(start),
-          end: minutesToTime(end),
-          subject: sub,
-          activity: `Study ${sub}`,
-          type: "study"
-        });
-      }
+    OUTPUT FORMAT (STRICT JSON ONLY):
+    {
+      "Monday": [{"start": "HH:MM", "end": "HH:MM", "subject": "Name", "activity": "Specific task", "type": "study" | "break"}],
+      ...repeat for all days
     }
+  `;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: "You are a JSON-only API that returns optimized study schedules." },
+        { role: "user", content: prompt }
+      ],
+      model: "llama-3.3-70b-versatile", // Latest Groq model
+      response_format: { type: "json_object" }
+    });
+
+    const content = chatCompletion.choices[0]?.message?.content;
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("Groq AI Error:", error);
+    throw new Error("Groq failed to architect the schedule.");
   }
-  return schedule;
 };
