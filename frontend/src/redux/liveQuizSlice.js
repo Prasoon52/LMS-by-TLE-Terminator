@@ -6,7 +6,7 @@ const initialState = {
   playersCount: 0,
   currentQuestion: null,
   quizStatus: "idle", // idle, waiting, active, results
-  liveStats: [0, 0, 0, 0], // For the graph
+  liveStats: [0, 0, 0, 0],
   leaderboard: [],
   myScore: 0,
 };
@@ -33,7 +33,7 @@ const liveQuizSlice = createSlice({
         state.liveStats = action.payload.stats;
         state.leaderboard = action.payload.leaderboard;
     },
-    resetQuizState: (state) => initialState
+    resetQuizState: () => initialState,
   },
 });
 

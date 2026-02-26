@@ -13,11 +13,11 @@ import liveQuizSlice from "./liveQuizSlice";
 //     }
 // })
 export const store = configureStore({
-    reducer:{
-        user: userSlice,
-        course: courseSlice,
-        lecture: lectureSlice,
-        review: reviewSlice,
-        liveQuiz: liveQuizSlice // Add this line
-    }
-})
+  reducer: {
+    user: userSlice,
+    course: courseSlice,
+    lecture: lectureSlice,
+    review: reviewSlice,
+    liveQuiz: liveQuizSlice, // <-- add
+  }
+});
