@@ -2,27 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
 import { serverUrl } from '../../App';
-import { setQuestion, setResults } from '../../redux/liveQuizSlice';
 
 let socket;
 
 const StudentArena = () => {
   const dispatch = useDispatch();
   const { userData } = useSelector(state => state.user);
+  
   const [joined, setJoined] = useState(false);
   const [inputCode, setInputCode] = useState("");
+  const [socketError, setSocketError] = useState(""); // 🚨 NEW: Track CORS/Connection errors
   
   // Game State
   const [activeQ, setActiveQ] = useState(null);
   const [submitted, setSubmitted] = useState(false);
-  const [selectedOption, setSelectedOption] = useState(null); // Track what they clicked
+  const [selectedOption, setSelectedOption] = useState(null);
   const [resultData, setResultData] = useState(null);
 
   useEffect(() => {
-    // 🛠 FIX FOR SERVER CONNECTION
+    // 🛠 STRICT WEBSOCKET CONNECTION (Bypasses some CORS HTTP polling issues)
     socket = io(serverUrl, {
-        transports: ["websocket", "polling"],
-        withCredentials: true
+        transports: ["websocket"], // Force websockets only to avoid polling CORS
+        withCredentials: true,
+        reconnectionAttempts: 5
+    });
+
+    // 🚨 NEW: Catch and display connection/CORS errors on the screen
+    socket.on("connect_error", (err) => {
+        console.error("Socket Connection Error:", err.message);
+        setSocketError(`Connection Failed: ${err.message}. (Check Backend CORS)`);
+    });
+
+    socket.on("connect", () => {
+        setSocketError(""); // Clear errors on successful connect
     });
 
     socket.on("join_success", () => setJoined(true));
@@ -30,7 +42,7 @@ const StudentArena = () => {
     socket.on("receive_question", (data) => {
         setActiveQ(data);
         setSubmitted(false);
-        setSelectedOption(null); // Reset their choice for the new round
+        setSelectedOption(null);
         setResultData(null);
     });
 
@@ -39,7 +51,10 @@ const StudentArena = () => {
         setActiveQ(null);
     });
 
-    return () => socket.disconnect();
+    // Cleanup on unmount
+    return () => {
+        if (socket) socket.disconnect();
+    };
   }, []);
 
   const joinRoom = () => {
@@ -50,7 +65,7 @@ const StudentArena = () => {
   const submitAnswer = (index) => {
       if(submitted) return;
       socket.emit("student_submit_answer", { roomCode: inputCode, answerIndex: index });
-      setSelectedOption(index); // Save their choice to evaluate later
+      setSelectedOption(index);
       setSubmitted(true);
   };
 
@@ -62,17 +77,32 @@ const StudentArena = () => {
              <div className="w-3 h-3 bg-green-500 rounded-sm rotate-45"></div>
              LiveArena Student
         </div>
+        
         <div className="bg-slate-800 p-8 rounded-3xl text-center w-full max-w-md border border-slate-700 shadow-2xl">
           <h1 className="text-3xl text-white font-black mb-2">Join Battle</h1>
-          <p className="text-slate-400 mb-8">Enter the code on the screen</p>
+          <p className="text-slate-400 mb-6">Enter the code on the screen</p>
+          
+          {/* 🚨 ERROR BANNER UI 🚨 */}
+          {socketError && (
+              <div className="bg-rose-500/10 border border-rose-500 text-rose-400 p-3 rounded-xl mb-6 text-sm font-bold">
+                  {socketError}
+              </div>
+          )}
+
           <input 
-            className="w-full p-4 rounded-xl bg-slate-900 text-white mb-6 text-center text-3xl font-mono tracking-[0.5em] border border-slate-600 focus:border-green-500 focus:outline-none"
+            className="w-full p-4 rounded-xl bg-slate-900 text-white mb-6 text-center text-3xl font-mono tracking-[0.5em] border border-slate-600 focus:border-green-500 focus:outline-none uppercase"
             placeholder="1234"
             maxLength={4}
-            value={inputCode} onChange={e => setInputCode(e.target.value)}
+            value={inputCode} 
+            onChange={e => setInputCode(e.target.value)}
           />
-          <button onClick={joinRoom} className="w-full bg-green-600 py-4 rounded-xl text-white font-bold text-lg hover:bg-green-500 transition-all hover:scale-[1.02] shadow-lg shadow-green-600/30">
-            Enter Room
+          <button 
+            onClick={joinRoom} 
+            disabled={!!socketError} // Disable button if socket is broken
+            className={`w-full py-4 rounded-xl text-white font-bold text-lg transition-all shadow-lg 
+                ${socketError ? 'bg-slate-600 cursor-not-allowed opacity-50' : 'bg-green-600 hover:bg-green-500 hover:scale-[1.02] shadow-green-600/30'}
+            `}>
+            {socketError ? "Reconnecting..." : "Enter Room"}
           </button>
         </div>
       </div>

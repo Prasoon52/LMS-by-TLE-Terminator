@@ -19,23 +19,29 @@ import { initSocket } from "./socket.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import aiChatRoute from "./routes/aiChatRoute.js";
 
-
 import liveRouter from "./routes/liveRoutes.js"; 
 import summaryRouter from "./routes/summaryRoute.js"
-
 
 dotenv.config()
 
 let port = process.env.PORT
-let frontendUrl=process.env.FRONTEND_URL || "http://localhost:5173"
+
+// 👇 UPDATED: Define allowed origins array 👇
+const allowedOrigins = [
+    process.env.FRONTEND_URL || "http://localhost:5173",
+    "https://lms-by-tle-terminator.vercel.app"
+];
 
 let app = express()
 app.use(express.json())
 app.use(cookieParser())
+
+// 👇 UPDATED: Use the allowed origins array in CORS 👇
 app.use(cors({
-    origin: frontendUrl,
-    credentials:true
+    origin: allowedOrigins,
+    credentials: true
 }))
+
 app.use("/api/auth", authRouter)
 app.use("/api/user", userRouter)
 app.use("/api/course", courseRouter)
@@ -50,15 +56,11 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/chatai", aiChatRoute);
 
 app.use("/api/summary", summaryRouter);
-
-
 app.use("/api/live", liveRouter);
-
 
 app.get("/" , (req,res)=>{
     res.send("Hello From Server")
 })
-
 
 const server = http.createServer(app);
 initSocket(server);

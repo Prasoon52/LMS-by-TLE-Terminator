@@ -12,7 +12,11 @@ const liveQuizzes = new Map();
 export const initSocket = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
+      // 👇 UPDATED: Added Vercel URL to allowed origins 👇
+      origin: [
+        process.env.FRONTEND_URL || "http://localhost:5173",
+        "https://lms-by-tle-terminator.vercel.app" 
+      ],
       credentials: true,
     },
   });
