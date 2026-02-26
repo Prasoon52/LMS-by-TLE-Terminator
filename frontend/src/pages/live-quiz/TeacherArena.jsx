@@ -18,7 +18,10 @@ const TeacherArena = () => {
   const [isLive, setIsLive] = useState(false);
 
   useEffect(() => {
-    socket = io(serverUrl);
+   socket = io(serverUrl, {
+    transports: ["websocket", "polling"], // Forces websockets first
+    withCredentials: true
+});
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     dispatch(setRoomCode(code));
 
