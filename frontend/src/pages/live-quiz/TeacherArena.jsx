@@ -10,29 +10,34 @@ const TeacherArena = () => {
   const dispatch = useDispatch();
   const { roomCode, playersCount, liveStats, leaderboard } = useSelector(state => state.liveQuiz);
   
-  // Question Form State
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", "", "", ""]);
   const [correctIndex, setCorrectIndex] = useState(0);
   const [timer, setTimer] = useState(30);
   const [isLive, setIsLive] = useState(false);
+  const [isServerReady, setIsServerReady] = useState(false); // 🚨 Ensure server is ready
 
   useEffect(() => {
-   socket = io(serverUrl, {
-    transports: ["websocket", "polling"], // Forces websockets first
-    withCredentials: true
-});
-    const code = Math.floor(1000 + Math.random() * 9000).toString();
-    dispatch(setRoomCode(code));
+    socket = io(serverUrl, {
+        transports: ["websocket", "polling"], 
+        withCredentials: true
+    });
+    
+    // We determine the code once
+    const code = roomCode || Math.floor(1000 + Math.random() * 9000).toString();
+    if (!roomCode) dispatch(setRoomCode(code));
 
-    socket.emit("host_create_quiz", { roomCode: code });
+    // Wait until strictly connected to create the room
+    socket.on("connect", () => {
+        socket.emit("host_create_quiz", { roomCode: code }, (res) => {
+            if(res && res.status === "success") {
+                setIsServerReady(true);
+            }
+        });
+    });
 
     socket.on("player_joined", (data) => {
       dispatch(updatePlayerCount(data.count));
-    });
-
-    socket.on("live_answer_update", (data) => {
-       // Optional: Show how many answered in real-time
     });
 
     return () => socket.disconnect();
@@ -59,14 +64,22 @@ const TeacherArena = () => {
     <div className="min-h-screen bg-gray-900 text-white p-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-purple-400">🎮 Live Class Arena (Host)</h1>
-        <div className="bg-purple-800 px-6 py-2 rounded-lg text-xl">
-          Room Code: <span className="font-mono font-bold text-yellow-300">{roomCode}</span>
-        </div>
+        
+        {/* WARNING IF SERVER DISCONNECTED */}
+        {!isServerReady ? (
+            <div className="bg-rose-600 px-6 py-2 rounded-lg font-bold animate-pulse">
+               Connecting to Server...
+            </div>
+        ) : (
+            <div className="bg-purple-800 px-6 py-2 rounded-lg text-xl">
+               Room Code: <span className="font-mono font-bold text-yellow-300">{roomCode}</span>
+            </div>
+        )}
+        
         <div className="text-xl">👥 Students: {playersCount}</div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* LEFT: Controls */}
         <div className="bg-gray-800 p-6 rounded-xl">
           <h2 className="text-xl mb-4">📝 Create Question</h2>
           <textarea 
@@ -94,7 +107,7 @@ const TeacherArena = () => {
                  <option value={2}>Option 3</option>
                  <option value={3}>Option 4</option>
              </select>
-             <button onClick={launchQuestion} disabled={isLive} className="bg-green-600 hover:bg-green-500 px-6 py-2 rounded font-bold ml-auto">
+             <button onClick={launchQuestion} disabled={isLive || !isServerReady} className="bg-green-600 hover:bg-green-500 px-6 py-2 rounded font-bold ml-auto disabled:opacity-50">
                  {isLive ? "Live Now..." : "🚀 Launch Question"}
              </button>
              {isLive && (
@@ -105,24 +118,20 @@ const TeacherArena = () => {
           </div>
         </div>
 
-        {/* RIGHT: Live Stats & Graph */}
         <div className="bg-gray-800 p-6 rounded-xl">
             <h2 className="text-xl mb-4">📊 Live Results</h2>
-            
-            {/* Simple CSS Bar Graph */}
             <div className="flex items-end h-64 gap-4 mb-6 border-b border-gray-600 pb-2">
                 {liveStats.map((count, i) => (
                     <div key={i} className="flex-1 flex flex-col items-center">
                         <div 
                             className="w-full bg-blue-500 rounded-t transition-all duration-500" 
-                            style={{ height: `${Math.max(count * 10, 5)}%` }} // Scale height
+                            style={{ height: `${Math.max(count * 10, 5)}%` }}
                         ></div>
                         <span className="mt-2 font-bold">{count}</span>
                         <span className="text-sm text-gray-400">Opt {i+1}</span>
                     </div>
                 ))}
             </div>
-
             <h3 className="text-lg font-bold text-yellow-400 mb-2">🏆 Top 5 Leaderboard</h3>
             <ul>
                 {leaderboard.map((p, i) => (

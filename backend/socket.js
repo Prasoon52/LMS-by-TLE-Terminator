@@ -5,14 +5,11 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-// IN-MEMORY STATE FOR LIVE QUIZZES (No Database needed for temporary live state)
 const liveQuizzes = new Map(); 
-// Structure: { roomId: { hostSocket, players: { socketId: { name, score, answers } }, currentQuestion: {}, active: bool } }
 
 export const initSocket = (server) => {
   const io = new Server(server, {
     cors: {
-      // 👇 UPDATED: Added Vercel URL to allowed origins 👇
       origin: [
         process.env.FRONTEND_URL || "http://localhost:5173",
         "https://lms-by-tle-terminator.vercel.app" 
@@ -24,21 +21,14 @@ export const initSocket = (server) => {
   io.on("connection", (socket) => {
     console.log("🟢 User connected:", socket.id);
 
-    // ================= EXISTING CHAT LOGIC (Keep this) =================
-    socket.on("join_course", ({ courseId }) => {
-      socket.join(`course_${courseId}`);
-    });
+    // ================= CHAT LOGIC =================
+    socket.on("join_course", ({ courseId }) => socket.join(`course_${courseId}`));
 
-    socket.on("send_message", async ({ courseId, userId, userName, message }) => {
+    socket.on("send_message", async ({ courseId, userId, message }) => {
         if (!message?.trim()) return;
-        const chat = await CourseChat.create({
-          courseId, sender: userId, message, upvotes: 0, voters: [],
-        });
+        const chat = await CourseChat.create({ courseId, sender: userId, message, upvotes: 0, voters: [] });
         const populated = await chat.populate("sender", "name");
-        io.to(`course_${courseId}`).emit("receive_message", {
-          _id: populated._id, courseId, sender: populated.sender, message: populated.message,
-          upvotes: populated.upvotes, voters: populated.voters, createdAt: populated.createdAt,
-        });
+        io.to(`course_${courseId}`).emit("receive_message", populated);
     });
 
     socket.on("upvote_message", async ({ messageId, courseId, userId }) => {
@@ -54,15 +44,13 @@ export const initSocket = (server) => {
           chat.upvotes += 1;
         }
         await chat.save();
-        io.to(`course_${courseId}`).emit("message_upvoted", {
-          messageId, upvotes: chat.upvotes, voters: chat.voters,
-        });
+        io.to(`course_${courseId}`).emit("message_upvoted", { messageId, upvotes: chat.upvotes, voters: chat.voters });
     });
 
-    // ================= 🚀 NEW LIVE QUIZ ARENA LOGIC =================
+    // ================= 🚀 LIVE QUIZ LOGIC =================
 
     // 1. TEACHER CREATES ROOM
-    socket.on("host_create_quiz", ({ roomCode }) => {
+    socket.on("host_create_quiz", ({ roomCode }, callback) => {
         liveQuizzes.set(roomCode, {
             hostSocket: socket.id,
             players: {},
@@ -71,11 +59,14 @@ export const initSocket = (server) => {
         });
         socket.join(roomCode);
         console.log(`🎓 Quiz Room Created: ${roomCode}`);
+        if (typeof callback === "function") callback({ status: "success" });
     });
 
-    // 2. STUDENT JOINS ROOM
-    socket.on("student_join_quiz", ({ roomCode, name }) => {
+    // 2. STUDENT JOINS ROOM (🔥 Updated with strict callbacks)
+    socket.on("student_join_quiz", ({ roomCode, name }, callback) => {
+        console.log(`Student ${name} attempting to join ${roomCode}`);
         const room = liveQuizzes.get(roomCode);
+        
         if (room && room.active) {
             socket.join(roomCode);
             room.players[socket.id] = { name, score: 0, answers: [] };
@@ -86,23 +77,22 @@ export const initSocket = (server) => {
                 name 
             });
             
-            // Confirm to Student
+            // Confirm to Student via Callback
             socket.emit("join_success", { roomCode });
+            if (typeof callback === "function") callback({ status: "success" });
         } else {
+            console.log(`Failed: Room ${roomCode} not found.`);
             socket.emit("error_msg", { message: "Room not found or inactive" });
+            if (typeof callback === "function") callback({ status: "error", message: "Room not found. Make sure the teacher's room is active." });
         }
     });
 
     // 3. TEACHER LAUNCHES QUESTION
     socket.on("host_push_question", ({ roomCode, questionData }) => {
-        // questionData = { question, options: [], timeLimit, correctIndex }
         const room = liveQuizzes.get(roomCode);
         if (room) {
             room.currentQuestion = { ...questionData, startTime: Date.now() };
-            // Clear previous answers for this round
             Object.values(room.players).forEach(p => p.currentAnswer = null);
-            
-            // Send to Students (Hide correct answer!)
             socket.to(roomCode).emit("receive_question", {
                 question: questionData.question,
                 options: questionData.options,
@@ -116,18 +106,14 @@ export const initSocket = (server) => {
         const room = liveQuizzes.get(roomCode);
         if (room && room.currentQuestion) {
             const player = room.players[socket.id];
-            if (player && player.currentAnswer === undefined) { // Prevent double submit
+            if (player && player.currentAnswer === undefined) { 
                 player.currentAnswer = answerIndex;
-                
-                // Calculate Score (Speed Bonus)
                 const isCorrect = answerIndex === room.currentQuestion.correctIndex;
                 if (isCorrect) {
                     const timeTaken = (Date.now() - room.currentQuestion.startTime) / 1000;
-                    const points = Math.max(10, 100 - (timeTaken * 2)); // Simple alg
+                    const points = Math.max(10, 100 - (timeTaken * 2)); 
                     player.score += Math.round(points);
                 }
-
-                // Send immediate feedback to teacher (for live counter)
                 io.to(room.hostSocket).emit("live_answer_update", {
                     totalAnswers: Object.values(room.players).filter(p => p.currentAnswer !== undefined).length
                 });
@@ -135,26 +121,21 @@ export const initSocket = (server) => {
         }
     });
 
-    // 5. TEACHER ENDS QUESTION (SHOW RESULTS)
+    // 5. TEACHER ENDS QUESTION
     socket.on("host_show_results", ({ roomCode }) => {
         const room = liveQuizzes.get(roomCode);
         if (room) {
-            // Calculate Histogram
-            const stats = [0, 0, 0, 0]; // Counts for Option 0, 1, 2, 3
+            const stats = [0, 0, 0, 0]; 
             const leaderboard = [];
-
             Object.values(room.players).forEach(p => {
                 if (p.currentAnswer !== undefined && p.currentAnswer !== null) {
                     stats[p.currentAnswer]++;
                 }
                 leaderboard.push({ name: p.name, score: p.score });
             });
-
-            // Sort Leaderboard
             leaderboard.sort((a, b) => b.score - a.score);
             const top5 = leaderboard.slice(0, 5);
 
-            // Send Results to Everyone
             io.to(roomCode).emit("question_results", {
                 correctIndex: room.currentQuestion.correctIndex,
                 stats,
@@ -164,7 +145,6 @@ export const initSocket = (server) => {
     });
 
     socket.on("disconnect", () => {
-        // Cleanup logic if needed
         console.log("🔴 User disconnected:", socket.id);
     });
   });
