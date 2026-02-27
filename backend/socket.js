@@ -74,12 +74,33 @@ export const initSocket = (server) => {
       if (typeof callback === "function") callback({ status: "success" });
     });
 
-    // 2. STUDENT JOINS ROOM 
+    // 2. STUDENT JOINS ROOM (🔥 DUPLICATE PREVENTION FIX ADDED HERE 🔥)
     socket.on("student_join_quiz", ({ roomCode, name, userId }, callback) => {
       const room = liveQuizzes.get(roomCode);
       if (room && room.active) {
         socket.join(roomCode);
-        room.players[socket.id] = { userId, name, score: 0, answers: [] };
+        
+        // Check if the player already exists in the room (Reconnection)
+        let existingPlayerSocketId = Object.keys(room.players).find(id => {
+            const p = room.players[id];
+            // Match by userId if logged in, otherwise strictly match by name for guests
+            if (userId && p.userId === userId) return true;
+            if (!userId && !p.userId && p.name === name) return true;
+            return false;
+        });
+
+        if (existingPlayerSocketId) {
+            // Restore their old data (score, answers) to the new socket connection
+            room.players[socket.id] = room.players[existingPlayerSocketId];
+            
+            // Delete the old ghost connection to prevent duplicates in the UI/DB
+            if (existingPlayerSocketId !== socket.id) {
+                delete room.players[existingPlayerSocketId];
+            }
+        } else {
+            // Brand new player
+            room.players[socket.id] = { userId, name, score: 0, answers: [] };
+        }
         
         io.to(room.hostSocket).emit("player_joined", { 
           count: Object.keys(room.players).length,
@@ -120,7 +141,7 @@ export const initSocket = (server) => {
         
         let player = room.players[socket.id];
 
-        // Ghost Bug Fix: Find player if their socket disconnected and reconnected
+        // Ghost Bug Fix: Find player if their socket disconnected and reconnected mid-question
         if (!player) {
           const oldSocketId = Object.keys(room.players).find(id => {
              const p = room.players[id];
@@ -134,7 +155,6 @@ export const initSocket = (server) => {
           }
         }
 
-        // 👇 THE FIX: Check for BOTH undefined and null 👇
         if (player && (player.currentAnswer === undefined || player.currentAnswer === null)) { 
           const timeTaken = Date.now() - room.currentQuestion.startTime;
           player.currentAnswer = answerIndex;
@@ -144,7 +164,6 @@ export const initSocket = (server) => {
           let points = 0;
           
           if (isCorrect) {
-            // 👇 THE FIX: Exactly 1 XP per correct answer 👇
             points = 1; 
             player.score += points;
           }
