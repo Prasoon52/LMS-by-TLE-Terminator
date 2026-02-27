@@ -24,11 +24,11 @@ import summaryRouter from "./routes/summaryRoute.js"
 
 dotenv.config()
 
-let port = process.env.PORT
+let port = process.env.PORT || 8000
 
 // 👇 UPDATED: Define allowed origins array 👇
 const allowedOrigins = [
-    process.env.FRONTEND_URL || "http://localhost:5173",
+    process.env.FRONTEND_URL , "http://localhost:5173",
     "https://lms-by-tle-terminator.vercel.app"
 ];
 
@@ -39,7 +39,8 @@ app.use(cookieParser())
 // 👇 UPDATED: Use the allowed origins array in CORS 👇
 app.use(cors({
     origin: allowedOrigins,
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
 }))
 
 app.use("/api/auth", authRouter)
