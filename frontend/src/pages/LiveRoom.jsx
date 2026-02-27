@@ -177,8 +177,15 @@ export default function LiveRoom() {
          if(state.call.recording) await call.stopRecording();
       } catch (e) { console.warn("Rec stop warn:", e); }
       
-      await axios.post(`${serverUrl}/api/live/end`, { meetingId }, { withCredentials: true });
-      if (call) await call.endCall(); // Triggers call.ended event
+      // 👇 FIX: Force the call to end FIRST so students are kicked out immediately
+      if (call) await call.endCall(); 
+      
+      // THEN tell the database. Wrapped in a separate try/catch so a 400 error won't crash the UI.
+      try {
+         await axios.post(`${serverUrl}/api/live/end`, { meetingId }, { withCredentials: true });
+      } catch(dbErr) {
+         console.warn("Backend 400 error ignored, class ended anyway.", dbErr);
+      }
       
       toast.success("Class Ended");
       navigate('/live-schedule'); 
