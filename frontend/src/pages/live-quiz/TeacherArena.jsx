@@ -1,4 +1,3 @@
-// frontend/src/pages/live-quiz/TeacherArena.jsx
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { io } from 'socket.io-client';
@@ -11,59 +10,74 @@ const TeacherArena = () => {
   const dispatch = useDispatch();
   const { roomCode, playersCount, liveStats, leaderboard } = useSelector((state) => state.liveQuiz);
 
-  const [question, setQuestion] = useState("");
-  const [options, setOptions] = useState(["", "", "", ""]);
+  // Local state
+  const [question, setQuestion] = useState('');
+  const [options, setOptions] = useState(['', '', '', '']);
   const [correctIndex, setCorrectIndex] = useState(0);
   const [timer, setTimer] = useState(30);
   const [isLive, setIsLive] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState("Connecting...");
+  const [connectionStatus, setConnectionStatus] = useState('Connecting...');
+  const [isRoomReady, setIsRoomReady] = useState(false); // room creation confirmed
 
-  const barColors = ["bg-rose-500", "bg-emerald-500", "bg-blue-500", "bg-amber-500"];
+  const barColors = ['bg-rose-500', 'bg-emerald-500', 'bg-blue-500', 'bg-amber-500'];
   const maxVotes = Math.max(...liveStats, 1);
 
   useEffect(() => {
+    // Initialize socket with proper transports
     socket = io(serverUrl, {
-      transports: ["websocket", "polling"],
-      withCredentials: true
+      transports: ['websocket', 'polling'],
+      withCredentials: true,
     });
 
-    socket.on("connect", () => {
-      setConnectionStatus("Connected 🟢");
+    socket.on('connect', () => {
+      setConnectionStatus('Connected 🟢');
+      // Generate a random 4‑digit room code
       const code = Math.floor(1000 + Math.random() * 9000).toString();
-      dispatch(setRoomCode(code));
-      socket.emit("host_create_quiz", { roomCode: code }, (res) => {
-        if (res?.status === "success") console.log("Room created");
+
+      // Ask the server to create the room, with a callback to confirm
+      socket.emit('host_create_quiz', { roomCode: code }, (response) => {
+        if (response && response.status === 'success') {
+          dispatch(setRoomCode(code));
+          setIsRoomReady(true);
+          console.log('✅ Room created successfully:', code);
+        } else {
+          alert('❌ Failed to create room. Please refresh and try again.');
+        }
       });
     });
 
-    socket.on("connect_error", (err) => {
+    socket.on('connect_error', (err) => {
       setConnectionStatus(`Disconnected 🔴 (${err.message})`);
     });
 
-    socket.on("player_joined", (data) => {
+    socket.on('player_joined', (data) => {
       dispatch(updatePlayerCount(data.count));
     });
 
-    socket.on("live_answer_update", (data) => {
-      // optional: show a counter
+    socket.on('live_answer_update', (data) => {
+      // Optional: update a live counter
     });
 
-    return () => socket.disconnect();
+    return () => {
+      if (socket) socket.disconnect();
+    };
   }, [dispatch]);
 
   const launchQuestion = () => {
-    if (!question) return alert("Enter a question!");
+    if (!question.trim()) return alert('Please enter a question.');
     setIsLive(true);
-    socket.emit("host_push_question", {
+    socket.emit('host_push_question', {
       roomCode,
-      questionData: { question, options, timeLimit: timer, correctIndex }
+      questionData: { question, options, timeLimit: timer, correctIndex },
     });
   };
 
   const endQuestion = () => {
     setIsLive(false);
-    socket.emit("host_show_results", { roomCode });
-    socket.on("question_results", (data) => {
+    socket.emit('host_show_results', { roomCode });
+
+    // Listen for results once
+    socket.once('question_results', (data) => {
       dispatch(setResults(data));
     });
   };
@@ -78,16 +92,29 @@ const TeacherArena = () => {
               Live Class Arena
             </h1>
             <p className="text-slate-400">Host Dashboard</p>
+            <div className="text-xs mt-2 text-slate-500">
+              Status: <span className={connectionStatus.includes('🟢') ? 'text-green-400' : 'text-rose-400'}>
+                {connectionStatus}
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-6">
-            <div className="bg-slate-800 px-6 py-2 rounded-2xl border border-slate-700">
-              <span className="text-xs text-slate-400 uppercase">Room</span>
-              <span className="ml-2 font-mono text-3xl font-black text-amber-400">{roomCode}</span>
-            </div>
-            <div className="bg-slate-800 px-6 py-2 rounded-2xl border border-slate-700">
-              <span className="text-xs text-slate-400 uppercase">Players</span>
-              <span className="ml-2 text-3xl font-black text-white">{playersCount}</span>
-            </div>
+            {isRoomReady ? (
+              <>
+                <div className="bg-slate-800 px-6 py-2 rounded-2xl border border-slate-700">
+                  <span className="text-xs text-slate-400 uppercase">Room</span>
+                  <span className="ml-2 font-mono text-3xl font-black text-amber-400">{roomCode}</span>
+                </div>
+                <div className="bg-slate-800 px-6 py-2 rounded-2xl border border-slate-700">
+                  <span className="text-xs text-slate-400 uppercase">Players</span>
+                  <span className="ml-2 text-3xl font-black text-white">{playersCount}</span>
+                </div>
+              </>
+            ) : (
+              <div className="bg-slate-800 px-6 py-2 rounded-2xl border border-slate-700 animate-pulse">
+                Creating room...
+              </div>
+            )}
           </div>
         </div>
 
@@ -108,7 +135,7 @@ const TeacherArena = () => {
                     <div className={`absolute left-0 top-0 bottom-0 w-1.5 rounded-l-lg ${barColors[i]}`} />
                     <input
                       className={`w-full bg-slate-900 border ${i === correctIndex ? 'border-green-500' : 'border-slate-700'} p-3 pl-6 rounded-lg text-white`}
-                      placeholder={`Option ${i+1}`}
+                      placeholder={`Option ${i + 1}`}
                       value={opt}
                       onChange={(e) => {
                         const newOpts = [...options];
@@ -136,7 +163,8 @@ const TeacherArena = () => {
                 {!isLive ? (
                   <button
                     onClick={launchQuestion}
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 py-4 rounded-xl font-black text-lg shadow-lg hover:scale-[1.02] transition"
+                    disabled={!isRoomReady}
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 py-4 rounded-xl font-black text-lg shadow-lg hover:scale-[1.02] transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     🚀 Launch Question
                   </button>
@@ -158,7 +186,10 @@ const TeacherArena = () => {
                 <ul className="space-y-3">
                   {leaderboard.map((p, i) => (
                     <li key={i} className="flex justify-between items-center bg-slate-900 p-3 rounded-xl border border-slate-700/50">
-                      <span><span className="text-slate-500 mr-2">#{i+1}</span>{p.name}</span>
+                      <span>
+                        <span className="text-slate-500 mr-2">#{i + 1}</span>
+                        {p.name}
+                      </span>
                       <span className="font-mono text-emerald-400">{p.score} XP</span>
                     </li>
                   ))}
@@ -168,20 +199,24 @@ const TeacherArena = () => {
           </div>
 
           {/* Right: Graph */}
-          <div className="lg:col-span-8 bg-[#FDFDFC] text-slate-800 p-8 md:p-12 rounded-[2.5rem] shadow-2xl min-h-[500px] flex flex-col">
+          <div className="lg:col-span-8 bg-[#FDFDFC] text-slate-800 p-8 md:p-12 rounded-[2.5rem] shadow-2xl min-h-[500px] flex flex-col relative">
             <div className="absolute top-6 right-8 font-bold text-slate-300 tracking-widest text-sm flex items-center gap-2">
               <div className="w-3 h-3 bg-purple-500 rounded-sm rotate-45"></div>
               LiveArena
             </div>
             <h2 className="text-3xl md:text-5xl font-medium text-center mt-8 mb-16 text-slate-800 leading-tight">
-              {question || "Waiting to launch..."}
+              {question || 'Waiting to launch...'}
             </h2>
             <div className="flex-1 flex items-end justify-center gap-4 sm:gap-12 md:gap-20 border-b-2 border-slate-200 pb-0 relative">
               {liveStats.map((count, i) => {
                 const heightPercent = count === 0 ? 0 : (count / maxVotes) * 100;
                 return (
                   <div key={i} className="flex-1 flex flex-col items-center justify-end h-[350px] group relative">
-                    <span className={`text-4xl font-medium mb-3 transition-all duration-1000 ${count > 0 ? 'text-slate-700' : 'text-slate-300'}`}>
+                    <span
+                      className={`text-4xl font-medium mb-3 transition-all duration-1000 ${
+                        count > 0 ? 'text-slate-700' : 'text-slate-300'
+                      }`}
+                    >
                       {count}
                     </span>
                     <div
@@ -191,12 +226,12 @@ const TeacherArena = () => {
                     <div className={`w-[120%] h-[4px] absolute bottom-0 translate-y-[2px] rounded-full ${barColors[i]}`} />
                     <div className="absolute top-full mt-4 w-[150%] text-center px-2">
                       <span className="text-lg font-medium text-slate-600 line-clamp-2">
-                        {options[i] || `Option ${i+1}`}
+                        {options[i] || `Option ${i + 1}`}
                       </span>
                       {!isLive && i === correctIndex && (
                         <div className="mt-2 text-emerald-500 font-bold flex items-center justify-center gap-1">
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
                           </svg>
                           Correct
                         </div>
