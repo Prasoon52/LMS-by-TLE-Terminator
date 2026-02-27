@@ -10,20 +10,18 @@ const TeacherArena = () => {
   const dispatch = useDispatch();
   const { roomCode, playersCount, liveStats, leaderboard } = useSelector((state) => state.liveQuiz);
 
-  // Local state
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '', '', '']);
   const [correctIndex, setCorrectIndex] = useState(0);
   const [timer, setTimer] = useState(30);
   const [isLive, setIsLive] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
-  const [isRoomReady, setIsRoomReady] = useState(false); // room creation confirmed
+  const [isRoomReady, setIsRoomReady] = useState(false); 
 
   const barColors = ['bg-rose-500', 'bg-emerald-500', 'bg-blue-500', 'bg-amber-500'];
   const maxVotes = Math.max(...liveStats, 1);
 
   useEffect(() => {
-    // Initialize socket with proper transports
     socket = io(serverUrl, {
       transports: ['websocket', 'polling'],
       withCredentials: true,
@@ -31,15 +29,15 @@ const TeacherArena = () => {
 
     socket.on('connect', () => {
       setConnectionStatus('Connected 🟢');
-      // Generate a random 4‑digit room code
-      const code = Math.floor(1000 + Math.random() * 9000).toString();
+      
+      const savedCode = sessionStorage.getItem('teacherRoomCode');
+      const code = savedCode || Math.floor(1000 + Math.random() * 9000).toString();
 
-      // Ask the server to create the room, with a callback to confirm
       socket.emit('host_create_quiz', { roomCode: code }, (response) => {
         if (response && response.status === 'success') {
+          sessionStorage.setItem('teacherRoomCode', code); 
           dispatch(setRoomCode(code));
           setIsRoomReady(true);
-          console.log('✅ Room created successfully:', code);
         } else {
           alert('❌ Failed to create room. Please refresh and try again.');
         }
@@ -50,12 +48,17 @@ const TeacherArena = () => {
       setConnectionStatus(`Disconnected 🔴 (${err.message})`);
     });
 
-    socket.on('player_joined', (data) => {
-      dispatch(updatePlayerCount(data.count));
+    socket.on('host_state_restored', (data) => {
+      dispatch(updatePlayerCount(data.playersCount));
+      if (data.isLive && data.currentQuestion) {
+        setIsLive(true);
+        setQuestion(data.currentQuestion.question);
+        setOptions(data.currentQuestion.options);
+      }
     });
 
-    socket.on('live_answer_update', (data) => {
-      // Optional: update a live counter
+    socket.on('player_joined', (data) => {
+      dispatch(updatePlayerCount(data.count));
     });
 
     return () => {
@@ -76,10 +79,18 @@ const TeacherArena = () => {
     setIsLive(false);
     socket.emit('host_show_results', { roomCode });
 
-    // Listen for results once
     socket.once('question_results', (data) => {
       dispatch(setResults(data));
     });
+  };
+
+  // 🔥 NEW: HARD RESET ROOM FUNCTION 🔥
+  const handleResetRoom = () => {
+    if (window.confirm("🚨 DANGER: Do you want to destroy this room and kick everyone out? All scores will be reset to 0 and a new code will be generated.")) {
+        socket.emit("host_end_room", { roomCode });
+        sessionStorage.removeItem('teacherRoomCode');
+        window.location.reload(); // Reloads the page to give a perfectly fresh state
+    }
   };
 
   return (
@@ -101,9 +112,19 @@ const TeacherArena = () => {
           <div className="flex items-center gap-6">
             {isRoomReady ? (
               <>
-                <div className="bg-slate-800 px-6 py-2 rounded-2xl border border-slate-700">
+                <div className="bg-slate-800 px-6 py-2 rounded-2xl border border-slate-700 flex items-center">
                   <span className="text-xs text-slate-400 uppercase">Room</span>
                   <span className="ml-2 font-mono text-3xl font-black text-amber-400">{roomCode}</span>
+                  
+                  {/* 🔥 NEW: RESET ROOM BUTTON 🔥 */}
+                  <button 
+                    onClick={handleResetRoom} 
+                    title="Destroy Room & Get New Code" 
+                    className="ml-4 bg-rose-500/10 text-rose-400 hover:bg-rose-600 hover:text-white p-2 rounded-xl transition-all border border-rose-500/20"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  </button>
+
                 </div>
                 <div className="bg-slate-800 px-6 py-2 rounded-2xl border border-slate-700">
                   <span className="text-xs text-slate-400 uppercase">Players</span>

@@ -61,45 +61,69 @@ export const initSocket = (server) => {
 
     // ================= 🚀 LIVE QUIZ ARENA LOGIC =================
 
-    // 1. TEACHER CREATES ROOM
+    // 1. TEACHER CREATES OR RESUMES ROOM
     socket.on("host_create_quiz", ({ roomCode }, callback) => {
-      liveQuizzes.set(roomCode, {
-        hostSocket: socket.id,
-        players: {},
-        currentQuestion: null,
-        active: true
-      });
-      socket.join(roomCode);
-      console.log(`🎓 Quiz Room Created: ${roomCode}`);
+      let room = liveQuizzes.get(roomCode);
+      
+      if (room) {
+        room.hostSocket = socket.id;
+        socket.join(roomCode);
+        console.log(`🎓 Host Reconnected to Room: ${roomCode}`);
+        
+        socket.emit("host_state_restored", {
+           playersCount: Object.keys(room.players).length,
+           isLive: !!room.currentQuestion,
+           currentQuestion: room.currentQuestion
+        });
+      } else {
+        liveQuizzes.set(roomCode, {
+          hostSocket: socket.id,
+          players: {},
+          currentQuestion: null,
+          active: true
+        });
+        socket.join(roomCode);
+        console.log(`🎓 Quiz Room Created: ${roomCode}`);
+      }
+      
       if (typeof callback === "function") callback({ status: "success" });
     });
 
-    // 2. STUDENT JOINS ROOM (🔥 DUPLICATE PREVENTION FIX ADDED HERE 🔥)
+    // 🔥 NEW: TEACHER NUKES THE ROOM TO RESET CODES/SCORES 🔥
+    socket.on("host_end_room", ({ roomCode }) => {
+        const room = liveQuizzes.get(roomCode);
+        if (room && room.hostSocket === socket.id) {
+            // Tell all students the room is dead so they clear their cache
+            io.to(roomCode).emit("room_closed");
+            // Delete from backend memory
+            liveQuizzes.delete(roomCode);
+            console.log(`🗑️ Room ${roomCode} destroyed by Host.`);
+        }
+    });
+
+    // 2. STUDENT JOINS ROOM
     socket.on("student_join_quiz", ({ roomCode, name, userId }, callback) => {
       const room = liveQuizzes.get(roomCode);
       if (room && room.active) {
         socket.join(roomCode);
         
-        // Check if the player already exists in the room (Reconnection)
+        let player = null;
         let existingPlayerSocketId = Object.keys(room.players).find(id => {
             const p = room.players[id];
-            // Match by userId if logged in, otherwise strictly match by name for guests
             if (userId && p.userId === userId) return true;
             if (!userId && !p.userId && p.name === name) return true;
             return false;
         });
 
         if (existingPlayerSocketId) {
-            // Restore their old data (score, answers) to the new socket connection
-            room.players[socket.id] = room.players[existingPlayerSocketId];
-            
-            // Delete the old ghost connection to prevent duplicates in the UI/DB
+            player = room.players[existingPlayerSocketId];
+            room.players[socket.id] = player;
             if (existingPlayerSocketId !== socket.id) {
                 delete room.players[existingPlayerSocketId];
             }
         } else {
-            // Brand new player
-            room.players[socket.id] = { userId, name, score: 0, answers: [] };
+            player = { userId, name, score: 0, answers: [] };
+            room.players[socket.id] = player;
         }
         
         io.to(room.hostSocket).emit("player_joined", { 
@@ -108,6 +132,17 @@ export const initSocket = (server) => {
         });
         
         socket.emit("join_success", { roomCode });
+
+        if (room.currentQuestion) {
+            socket.emit("restore_active_question", {
+                question: room.currentQuestion.question,
+                options: room.currentQuestion.options,
+                timeLimit: room.currentQuestion.timeLimit,
+                hasAnswered: player.currentAnswer !== undefined && player.currentAnswer !== null,
+                answerIndex: player.currentAnswer
+            });
+        }
+
         if (typeof callback === "function") callback({ status: "success" });
       } else {
         socket.emit("error_msg", { message: "Room not found or inactive" });
@@ -123,7 +158,6 @@ export const initSocket = (server) => {
       if (room) {
         room.currentQuestion = { ...questionData, startTime: Date.now() };
         
-        // This sets currentAnswer to NULL for everyone
         Object.values(room.players).forEach(p => p.currentAnswer = null);
         
         io.to(roomCode).emit("receive_question", {
@@ -141,7 +175,6 @@ export const initSocket = (server) => {
         
         let player = room.players[socket.id];
 
-        // Ghost Bug Fix: Find player if their socket disconnected and reconnected mid-question
         if (!player) {
           const oldSocketId = Object.keys(room.players).find(id => {
              const p = room.players[id];
@@ -185,7 +218,7 @@ export const initSocket = (server) => {
       }
     });
 
-    // 5. TEACHER ENDS QUESTION (SHOW RESULTS & SAVE TO DB)
+    // 5. TEACHER ENDS QUESTION
     socket.on("host_show_results", async ({ roomCode }) => {
       const room = liveQuizzes.get(roomCode);
       if (!room) return;
@@ -195,12 +228,10 @@ export const initSocket = (server) => {
       const participantsData = [];
 
       Object.entries(room.players).forEach(([socketId, p]) => {
-        // Build the graph using the answers
         if (p.currentAnswer !== undefined && p.currentAnswer !== null) {
           stats[p.currentAnswer]++;
         }
         
-        // Push the total updated score to leaderboard
         leaderboard.push({ name: p.name, score: p.score });
         
         participantsData.push({
@@ -233,19 +264,19 @@ export const initSocket = (server) => {
           }
         });
         await result.save();
-        console.log(`📊 Quiz result saved for room ${roomCode}`);
       } catch (error) {
         console.error("Failed to save quiz result:", error);
       }
 
+      room.currentQuestion = null;
+
       io.to(roomCode).emit("question_results", {
-        correctIndex: room.currentQuestion.correctIndex,
+        correctIndex: room.currentQuestion?.correctIndex || 0,
         stats,
         leaderboard: top5
       });
     });
 
-    // 6. DISCONNECT
     socket.on("disconnect", () => {
       console.log("🔴 User disconnected:", socket.id);
     });

@@ -8,13 +8,21 @@ let socket;
 const StudentArena = () => {
   const { userData } = useSelector((state) => state.user);
   const [joined, setJoined] = useState(false);
-  const [inputCode, setInputCode] = useState('');
+  
+  const [inputCode, setInputCode] = useState(sessionStorage.getItem('studentRoomCode') || '');
+  
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   const [activeQ, setActiveQ] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [resultData, setResultData] = useState(null);
   const [joinError, setJoinError] = useState('');
+  
+  // 🔥 NEW: Persistent Leaderboard State
+  const [leaderboard, setLeaderboard] = useState([]);
+
+  // Bar colors for the graph
+  const barColors = ['bg-rose-500', 'bg-emerald-500', 'bg-blue-500', 'bg-amber-500'];
 
   useEffect(() => {
     socket = io(serverUrl, {
@@ -30,13 +38,32 @@ const StudentArena = () => {
       setConnectionStatus(`Disconnected 🔴 (${err.message})`);
     });
 
-    socket.on('join_success', () => {
+    socket.on('join_success', (data) => {
+      sessionStorage.setItem('studentRoomCode', data.roomCode); 
       setJoined(true);
       setJoinError('');
     });
 
     socket.on('error_msg', (data) => {
       setJoinError(data.message);
+    });
+
+    socket.on('room_closed', () => {
+      sessionStorage.removeItem('studentRoomCode');
+      alert("⚠️ The host has ended this session and reset the room. You will be disconnected.");
+      window.location.reload(); 
+    });
+
+    socket.on('restore_active_question', (data) => {
+      setActiveQ(data);
+      if (data.hasAnswered) {
+        setSubmitted(true);
+        setSelectedOption(data.answerIndex);
+      } else {
+        setSubmitted(false);
+        setSelectedOption(null);
+      }
+      setResultData(null); 
     });
 
     socket.on('receive_question', (data) => {
@@ -48,7 +75,8 @@ const StudentArena = () => {
 
     socket.on('question_results', (data) => {
       setResultData(data);
-      setActiveQ(null);
+      setLeaderboard(data.leaderboard); // Update the persistent leaderboard
+      // Note: We DO NOT set activeQ to null here anymore, so the graph can read the option texts!
     });
 
     return () => {
@@ -65,7 +93,6 @@ const StudentArena = () => {
       return;
     }
 
-    // Set a timeout in case the server never responds
     const timeoutId = setTimeout(() => {
       setJoinError('Server did not respond. Please try again.');
     }, 5000);
@@ -82,7 +109,6 @@ const StudentArena = () => {
         if (response && response.status === 'error') {
           setJoinError(response.message);
         } else if (response && response.status === 'success') {
-          // join_success will also fire, but we set joined anyway
           setJoined(true);
           setJoinError('');
         } else {
@@ -95,7 +121,6 @@ const StudentArena = () => {
   const submitAnswer = (index) => {
     if (submitted) return;
     
-    // 👇 GHOST BUG FIX: Added userId and name so the server never loses the student
     socket.emit('student_submit_answer', { 
         roomCode: inputCode.trim(), 
         answerIndex: index,
@@ -144,100 +169,169 @@ const StudentArena = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-6 flex flex-col items-center">
-      {activeQ ? (
-        <div className="w-full max-w-2xl mt-12">
-          <div className="mb-10 text-center">
-            <h2 className="text-3xl font-bold mb-4 text-slate-100">{activeQ.question}</h2>
-            <div className="inline-block px-4 py-2 bg-slate-800 rounded-full text-amber-400 font-bold text-sm border border-slate-700">
-              ⏳ Quick, choose an option!
+      <div className="flex-1 w-full flex flex-col items-center">
+          
+        {/* === WAITING SCREEN === */}
+        {!activeQ && !resultData ? (
+          <div className="text-center mt-32">
+            <div className="w-16 h-16 border-4 border-slate-700 border-t-green-500 rounded-full animate-spin mx-auto mb-6"></div>
+            <h2 className="text-2xl font-bold text-white mb-2">You are in!</h2>
+            <p className="text-slate-400">Waiting for the host to launch the next question...</p>
+          </div>
+        ) 
+        
+        /* === ACTIVE QUESTION SCREEN === */
+        : activeQ && !resultData ? (
+          <div className="w-full max-w-2xl mt-12">
+            <div className="mb-10 text-center">
+              <h2 className="text-3xl font-bold mb-4 text-slate-100">{activeQ.question}</h2>
+              <div className="inline-block px-4 py-2 bg-slate-800 rounded-full text-amber-400 font-bold text-sm border border-slate-700">
+                ⏳ Quick, choose an option!
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {activeQ.options.map((opt, i) => (
-              <button
-                key={i}
-                onClick={() => submitAnswer(i)}
-                disabled={submitted}
-                className={`p-6 rounded-2xl text-xl font-bold transition-all transform 
-                  ${submitted && selectedOption === i ? 'bg-slate-700 border-4 border-slate-400 opacity-100 scale-95' : ''}
-                  ${submitted && selectedOption !== i ? 'bg-slate-800 opacity-40 cursor-not-allowed' : ''}
-                  ${!submitted
-                    ? i === 0
-                      ? 'bg-rose-500 shadow-[0_8px_0_rgb(159,18,57)] hover:bg-rose-400 hover:-translate-y-1'
-                      : i === 1
-                      ? 'bg-emerald-500 shadow-[0_8px_0_rgb(6,95,70)] hover:bg-emerald-400 hover:-translate-y-1'
-                      : i === 2
-                      ? 'bg-blue-500 shadow-[0_8px_0_rgb(30,58,138)] hover:bg-blue-400 hover:-translate-y-1'
-                      : 'bg-amber-500 shadow-[0_8px_0_rgb(146,64,14)] hover:bg-amber-400 hover:-translate-y-1'
-                    : 'shadow-none translate-y-2'}
-                `}
-              >
-                {opt || `Option ${i + 1}`}
-              </button>
-            ))}
-          </div>
-          {submitted && (
-            <p className="text-center mt-8 text-slate-400 font-bold animate-pulse">
-              Answer locked! Waiting for others...
-            </p>
-          )}
-        </div>
-      ) : resultData ? (
-        <div className="w-full max-w-md mt-12 animate-fade-in">
-          <div className="bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl text-center mb-8">
-            {selectedOption === null ? (
-              <div>
-                <div className="text-6xl mb-4">⏳</div>
-                <h1 className="text-3xl font-black text-slate-400 mb-2">You Missed!</h1>
-                <p className="text-slate-500">You ran out of time.</p>
-              </div>
-            ) : selectedOption === resultData.correctIndex ? (
-              <div>
-                <div className="text-6xl mb-4">🎉</div>
-                <h1 className="text-3xl font-black text-emerald-400 mb-2">Correct!</h1>
-                <p className="text-slate-400">Awesome job!</p>
-              </div>
-            ) : (
-              <div>
-                <div className="text-6xl mb-4">❌</div>
-                <h1 className="text-3xl font-black text-rose-500 mb-2">Wrong!</h1>
-                <p className="text-slate-400">Better luck next time.</p>
-              </div>
-            )}
-            <div className="mt-8 pt-6 border-t border-slate-700">
-              <p className="text-sm text-slate-400 uppercase tracking-widest font-bold mb-2">
-                Correct Answer Was
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {activeQ.options.map((opt, i) => (
+                <button
+                  key={i}
+                  onClick={() => submitAnswer(i)}
+                  disabled={submitted}
+                  className={`p-6 rounded-2xl text-xl font-bold transition-all transform 
+                    ${submitted && selectedOption === i ? 'bg-slate-700 border-4 border-slate-400 opacity-100 scale-95' : ''}
+                    ${submitted && selectedOption !== i ? 'bg-slate-800 opacity-40 cursor-not-allowed' : ''}
+                    ${!submitted
+                      ? i === 0
+                        ? 'bg-rose-500 shadow-[0_8px_0_rgb(159,18,57)] hover:bg-rose-400 hover:-translate-y-1'
+                        : i === 1
+                        ? 'bg-emerald-500 shadow-[0_8px_0_rgb(6,95,70)] hover:bg-emerald-400 hover:-translate-y-1'
+                        : i === 2
+                        ? 'bg-blue-500 shadow-[0_8px_0_rgb(30,58,138)] hover:bg-blue-400 hover:-translate-y-1'
+                        : 'bg-amber-500 shadow-[0_8px_0_rgb(146,64,14)] hover:bg-amber-400 hover:-translate-y-1'
+                      : 'shadow-none translate-y-2'}
+                  `}
+                >
+                  {opt || `Option ${i + 1}`}
+                </button>
+              ))}
+            </div>
+            {submitted && (
+              <p className="text-center mt-8 text-slate-400 font-bold animate-pulse">
+                Answer locked! Waiting for others...
               </p>
-              <p className="text-xl font-bold text-white">Option {resultData.correctIndex + 1}</p>
-            </div>
+            )}
           </div>
-          <div className="bg-slate-800 p-6 rounded-3xl border border-slate-700 shadow-xl">
-            <h3 className="text-lg font-bold text-amber-400 mb-4 text-center">🏆 Live Leaderboard</h3>
+        ) 
+        
+        /* === RESULTS SCREEN WITH GRAPH === */
+        : resultData ? (
+          <div className="w-full max-w-3xl mt-12 animate-fade-in flex flex-col items-center">
+            
+            {/* Top Correct/Wrong Banner */}
+            <div className="bg-slate-800 p-8 rounded-3xl border border-slate-700 shadow-2xl text-center w-full max-w-md">
+              {selectedOption === null ? (
+                <div>
+                  <div className="text-6xl mb-4">⏳</div>
+                  <h1 className="text-3xl font-black text-slate-400 mb-2">You Missed!</h1>
+                  <p className="text-slate-500">You ran out of time.</p>
+                </div>
+              ) : selectedOption === resultData.correctIndex ? (
+                <div>
+                  <div className="text-6xl mb-4">🎉</div>
+                  <h1 className="text-3xl font-black text-emerald-400 mb-2">Correct!</h1>
+                  <p className="text-slate-400">Awesome job!</p>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-6xl mb-4">❌</div>
+                  <h1 className="text-3xl font-black text-rose-500 mb-2">Wrong!</h1>
+                  <p className="text-slate-400">Better luck next time.</p>
+                </div>
+              )}
+              <div className="mt-6 pt-4 border-t border-slate-700">
+                <p className="text-sm text-slate-400 uppercase tracking-widest font-bold mb-2">
+                  Correct Answer Was
+                </p>
+                <p className="text-xl font-bold text-white">
+                  {activeQ?.options?.[resultData.correctIndex] || `Option ${resultData.correctIndex + 1}`}
+                </p>
+              </div>
+            </div>
+
+            {/* 🔥 NEW: Student View Live Graph 🔥 */}
+            <div className="w-full bg-[#FDFDFC] text-slate-800 p-6 md:p-10 rounded-[2.5rem] shadow-2xl flex flex-col relative mt-10">
+                <div className="absolute top-6 right-8 font-bold text-slate-300 tracking-widest text-sm flex items-center gap-2">
+                  <div className="w-3 h-3 bg-purple-500 rounded-sm rotate-45"></div>
+                  Class Stats
+                </div>
+                <h3 className="text-2xl md:text-3xl font-bold text-center mt-4 mb-12 text-slate-700">
+                  How everyone answered
+                </h3>
+                
+                <div className="flex items-end justify-center gap-4 sm:gap-12 md:gap-20 border-b-2 border-slate-200 pb-0 relative">
+                  {resultData.stats.map((count, i) => {
+                    const maxVotes = Math.max(...resultData.stats, 1);
+                    const heightPercent = count === 0 ? 0 : (count / maxVotes) * 100;
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center justify-end h-[250px] relative">
+                        <span className={`text-2xl font-medium mb-3 ${count > 0 ? 'text-slate-700' : 'text-slate-300'}`}>
+                          {count}
+                        </span>
+                        <div
+                          className={`w-full max-w-[80px] rounded-t-lg transition-all duration-1000 ease-out ${barColors[i]}`}
+                          style={{ height: `${heightPercent}%`, minHeight: count > 0 ? '12px' : '0px' }}
+                        />
+                        <div className={`w-[120%] h-[4px] absolute bottom-0 translate-y-[2px] rounded-full ${barColors[i]}`} />
+                        <div className="absolute top-full mt-4 w-[150%] text-center px-1">
+                          <span className="text-sm font-medium text-slate-600 line-clamp-2">
+                            {activeQ?.options?.[i] || `Option ${i + 1}`}
+                          </span>
+                          {i === resultData.correctIndex && (
+                            <div className="mt-2 text-emerald-500 font-bold flex items-center justify-center gap-1 text-sm">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                              </svg>
+                              Correct
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="h-20"></div>
+            </div>
+
+          </div>
+        ) : null}
+      </div>
+
+      {/* === ALWAYS VISIBLE LEADERBOARD (Pinned at Bottom) === */}
+      {leaderboard.length > 0 && (
+        <div className="w-full max-w-2xl mt-12 mb-4">
+          <div className="bg-slate-800 p-6 rounded-[2rem] border border-slate-700 shadow-xl">
+            <h3 className="text-lg font-bold text-amber-400 mb-4 text-center tracking-wide">
+              🏆 LIVE LEADERBOARD
+            </h3>
             <ul className="space-y-3">
-              {resultData.leaderboard.map((p, i) => (
+              {leaderboard.map((p, i) => (
                 <li
                   key={i}
-                  className={`flex justify-between items-center p-3 rounded-xl ${
+                  className={`flex justify-between items-center p-4 rounded-xl transition-all ${
                     p.name === (userData?.name || 'Guest')
-                      ? 'bg-slate-700 border border-slate-500'
+                      ? 'bg-slate-700 border-2 border-amber-500 shadow-lg scale-[1.02]'
                       : 'bg-slate-900 border border-slate-700/50'
                   }`}
                 >
                   <span className="font-bold text-slate-200">
-                    <span className="text-slate-500 mr-2">#{i + 1}</span>
-                    {p.name} {p.name === (userData?.name || 'Guest') && '(You)'}
+                    <span className={`mr-3 ${i === 0 ? 'text-amber-400 text-lg' : i === 1 ? 'text-slate-300 text-lg' : i === 2 ? 'text-amber-600 text-lg' : 'text-slate-500'}`}>
+                        #{i + 1}
+                    </span>
+                    {p.name} {p.name === (userData?.name || 'Guest') && <span className="ml-2 text-amber-400 text-xs uppercase tracking-widest">(You)</span>}
                   </span>
-                  <span className="font-mono font-bold text-emerald-400">{p.score} XP</span>
+                  <span className="font-mono font-black text-emerald-400 text-lg">{p.score} XP</span>
                 </li>
               ))}
             </ul>
           </div>
-        </div>
-      ) : (
-        <div className="text-center mt-32">
-          <div className="w-16 h-16 border-4 border-slate-700 border-t-green-500 rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-2xl font-bold text-white mb-2">You are in!</h2>
-          <p className="text-slate-400">Waiting for the host to launch the question...</p>
         </div>
       )}
     </div>
