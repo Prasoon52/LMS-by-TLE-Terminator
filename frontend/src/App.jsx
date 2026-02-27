@@ -1,5 +1,6 @@
 import React from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
+import axios from 'axios' 
 import Home from './pages/Home'
 import Login from './pages/Login'
 import SignUp from './pages/SignUp'
@@ -34,6 +35,10 @@ import LiveRoom from './pages/LiveRoom'
 import AIScheduler from './pages/AIScheduler'
 
 export const serverUrl = import.meta.env.VITE_BACKEND || "http://localhost:8000"
+
+// 👇 THE MAGIC FIX: GLOBAL AXIOS CONFIGURATION 👇
+// This forces EVERY single request in your app to attach your secure cookies!
+axios.defaults.withCredentials = true;
 
 function App() {
 
