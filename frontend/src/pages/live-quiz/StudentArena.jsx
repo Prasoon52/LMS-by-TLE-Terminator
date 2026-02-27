@@ -94,7 +94,15 @@ const StudentArena = () => {
 
   const submitAnswer = (index) => {
     if (submitted) return;
-    socket.emit('student_submit_answer', { roomCode: inputCode.trim(), answerIndex: index });
+    
+    // 👇 GHOST BUG FIX: Added userId and name so the server never loses the student
+    socket.emit('student_submit_answer', { 
+        roomCode: inputCode.trim(), 
+        answerIndex: index,
+        userId: userData?._id || null,
+        name: userData?.name || 'Guest'
+    });
+    
     setSelectedOption(index);
     setSubmitted(true);
   };
