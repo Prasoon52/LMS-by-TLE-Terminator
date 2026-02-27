@@ -8,22 +8,17 @@ dotenv.config();
 
 // In-memory store for active quizzes
 const liveQuizzes = new Map(); 
-// Structure: {
-//   roomCode: {
-//     hostSocket: socketId,
-//     players: { socketId: { userId, name, score, answers: [] } },
-//     currentQuestion: { question, options, correctIndex, timeLimit, startTime },
-//     active: boolean
-//   }
-// }
 
 export const initSocket = (server) => {
   const io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
+      origin: [
+        process.env.FRONTEND_URL || "http://localhost:5173",
+        "https://lms-by-tle-terminator.vercel.app"
+      ],
       credentials: true,
     },
-    transports: ["websocket", "polling"], // important for deployment
+    transports: ["websocket", "polling"], 
   });
 
   io.on("connection", (socket) => {
@@ -66,7 +61,7 @@ export const initSocket = (server) => {
 
     // ================= 🚀 LIVE QUIZ ARENA LOGIC =================
 
-    // 1. TEACHER CREATES ROOM (with callback for confirmation)
+    // 1. TEACHER CREATES ROOM
     socket.on("host_create_quiz", ({ roomCode }, callback) => {
       liveQuizzes.set(roomCode, {
         hostSocket: socket.id,
@@ -79,7 +74,7 @@ export const initSocket = (server) => {
       if (typeof callback === "function") callback({ status: "success" });
     });
 
-    // 2. STUDENT JOINS ROOM (with callback for error handling)
+    // 2. STUDENT JOINS ROOM 
     socket.on("student_join_quiz", ({ roomCode, name, userId }, callback) => {
       const room = liveQuizzes.get(roomCode);
       if (room && room.active) {
@@ -106,7 +101,8 @@ export const initSocket = (server) => {
       const room = liveQuizzes.get(roomCode);
       if (room) {
         room.currentQuestion = { ...questionData, startTime: Date.now() };
-        // Clear previous answers for this round
+        
+        // This sets currentAnswer to NULL for everyone
         Object.values(room.players).forEach(p => p.currentAnswer = null);
         
         io.to(roomCode).emit("receive_question", {
@@ -118,26 +114,45 @@ export const initSocket = (server) => {
     });
 
     // 4. STUDENT SUBMITS ANSWER
-    socket.on("student_submit_answer", ({ roomCode, answerIndex }) => {
+    socket.on("student_submit_answer", ({ roomCode, answerIndex, userId, name }) => {
       const room = liveQuizzes.get(roomCode);
       if (room && room.currentQuestion) {
-        const player = room.players[socket.id];
-        if (player && player.currentAnswer === undefined) { 
+        
+        let player = room.players[socket.id];
+
+        // Ghost Bug Fix: Find player if their socket disconnected and reconnected
+        if (!player) {
+          const oldSocketId = Object.keys(room.players).find(id => {
+             const p = room.players[id];
+             return (userId && p.userId === userId) || (p.name === name);
+          });
+          
+          if (oldSocketId) {
+             player = room.players[oldSocketId];
+             room.players[socket.id] = player;
+             delete room.players[oldSocketId];
+          }
+        }
+
+        // 👇 THE FIX: Check for BOTH undefined and null 👇
+        if (player && (player.currentAnswer === undefined || player.currentAnswer === null)) { 
           const timeTaken = Date.now() - room.currentQuestion.startTime;
           player.currentAnswer = answerIndex;
           player.responseTime = timeTaken;
           
           const isCorrect = answerIndex === room.currentQuestion.correctIndex;
           let points = 0;
+          
           if (isCorrect) {
-            // speed bonus: more points for faster answers
-            const maxPoints = 100;
-            const decay = Math.min(timeTaken / 1000, room.currentQuestion.timeLimit) / room.currentQuestion.timeLimit;
-            points = Math.round(maxPoints * (1 - decay * 0.5)); // at least 50 points if correct
+            // 👇 THE FIX: Exactly 1 XP per correct answer 👇
+            points = 1; 
             player.score += points;
           }
+
+          if (!player.answers) player.answers = [];
+
           player.answers.push({
-            questionIndex: 0, // could track multiple questions if needed
+            questionIndex: 0,
             answerIndex,
             isCorrect,
             points,
@@ -145,7 +160,7 @@ export const initSocket = (server) => {
           });
 
           io.to(room.hostSocket).emit("live_answer_update", {
-            totalAnswers: Object.values(room.players).filter(p => p.currentAnswer !== undefined).length
+            totalAnswers: Object.values(room.players).filter(p => p.currentAnswer !== undefined && p.currentAnswer !== null).length
           });
         }
       }
@@ -161,25 +176,27 @@ export const initSocket = (server) => {
       const participantsData = [];
 
       Object.entries(room.players).forEach(([socketId, p]) => {
-        if (p.currentAnswer !== undefined) {
+        // Build the graph using the answers
+        if (p.currentAnswer !== undefined && p.currentAnswer !== null) {
           stats[p.currentAnswer]++;
         }
+        
+        // Push the total updated score to leaderboard
         leaderboard.push({ name: p.name, score: p.score });
-        // Prepare participant data for DB
+        
         participantsData.push({
           userId: p.userId,
           name: p.name,
           answerIndex: p.currentAnswer,
           isCorrect: p.currentAnswer === room.currentQuestion.correctIndex,
-          score: p.answers.length ? p.answers[p.answers.length-1].points : 0,
-          responseTime: p.responseTime
+          score: p.answers && p.answers.length ? p.answers[p.answers.length-1].points : 0,
+          responseTime: p.responseTime || 0
         });
       });
 
       leaderboard.sort((a, b) => b.score - a.score);
       const top5 = leaderboard.slice(0, 5);
 
-      // Save round results to database
       try {
         const result = new LiveQuizResult({
           roomCode,
@@ -209,10 +226,9 @@ export const initSocket = (server) => {
       });
     });
 
-    // 6. DISCONNECT – optional cleanup
+    // 6. DISCONNECT
     socket.on("disconnect", () => {
       console.log("🔴 User disconnected:", socket.id);
-      // Clean up rooms if host disconnects? Could be handled separately.
     });
   });
 };
