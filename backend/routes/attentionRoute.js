@@ -19,7 +19,7 @@ router.post(
     try {
       console.log("HIT ATTENTION ROUTE");
 
-      if (!req.file || !req.file.buffer) {
+      if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
         return res.status(400).json({ error: "No frame received" });
       }
 
@@ -30,10 +30,6 @@ router.post(
         return res.status(400).json({ error: "lectureId is required" });
       }
 
-      console.log("User:", userId);
-      console.log("Lecture:", lectureId);
-      console.log("Frame size:", req.file.buffer.length);
-
       const form = new FormData();
       form.append("frame", req.file.buffer, {
         filename: "frame.jpg",
@@ -41,16 +37,18 @@ router.post(
       });
 
       const { data } = await axios.post(
-  `${process.env.ATTENTION_URL}/analyze`,
-  form,
-  {
-    headers: form.getHeaders(),
-    timeout: 5000
-  }
-);
+        `${process.env.ATTENTION_URL}/analyze`,
+        form,
+        {
+          headers: {
+            ...form.getHeaders(),
+          },
+          maxBodyLength: Infinity,
+          timeout: 30000,
+        }
+      );
 
-
-      // 🔥 PER-VIDEO KEY (IMPORTANT)
+      // 🔥 PER-VIDEO KEY
       const key = `${userId}:${lectureId}`;
 
       pushSignal(key, data);
@@ -61,7 +59,7 @@ router.post(
         temporal: attention,
       });
     } catch (err) {
-      console.error("🔥 ATTENTION ROUTE ERROR:", err);
+      console.error("🔥 ATTENTION ROUTE ERROR:", err.message);
       return res.status(500).json({ error: "Attention processing failed" });
     }
   }
