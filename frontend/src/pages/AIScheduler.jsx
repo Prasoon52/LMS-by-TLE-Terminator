@@ -168,15 +168,37 @@ const AIScheduler = () => {
   };
 
   const generate = async () => {
-    if (subjects.length === 0) return alert("Bhai, subjects list empty hai!");
-    setLoading(true);
-    try {
-      const payload = { structuredData: { subjects, weakSubjects, freeTimeSlots, offDays } };
-      const res = await axios.post(`${serverUrl}/api/ai-scheduler/generate`, payload);
-      setSchedule(res.data.schedule);
-    } catch (err) {
-      alert("Groq Blueprint failed. Check API/Server.");
+    if (subjects.length === 0) {
+      alert("Add at least one subject.");
+      return;
     }
+
+    setLoading(true);
+
+    try {
+      const payload = {
+        structuredData: {
+          subjects,
+          weakSubjects,
+          freeTimeSlots,
+          offDays,
+        },
+        previousSchedule: schedule ? schedule : null,
+      };
+
+      const res = await axios.post(
+        `${serverUrl}/api/ai-scheduler/generate`,
+        payload
+      );
+
+      if (res.data && res.data.schedule) {
+        setSchedule(res.data.schedule);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Schedule regeneration failed.");
+    }
+
     setLoading(false);
   };
 
@@ -287,6 +309,13 @@ const AIScheduler = () => {
                     <span className="text-[8px] text-slate-500 font-bold uppercase tracking-widest">Live Editing Enabled</span>
                   </div>
                   <div className="flex gap-3">
+                    <button
+                      onClick={generate}
+                      disabled={loading}
+                      className="flex items-center gap-2 bg-indigo-600 px-5 py-2.5 rounded-2xl text-[10px] font-black hover:bg-indigo-500 transition-all border border-indigo-500/30"
+                    >
+                      {loading ? "REGENERATING..." : "REGENERATE"}
+                    </button>
                     <button onClick={downloadPDF} className="flex items-center gap-2 bg-slate-800 px-5 py-2.5 rounded-2xl text-[10px] font-black hover:bg-slate-700 transition-all border border-slate-700"><Download size={14}/> PDF</button>
                     <button onClick={() => setSchedule(null)} className="p-2.5 bg-red-500/10 text-red-500 rounded-2xl hover:bg-red-500/20 border border-red-500/20 transition-all"><Trash2 size={18}/></button>
                   </div>
