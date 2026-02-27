@@ -1,16 +1,11 @@
 import { genToken } from "../configs/token.js"
 import validator from "validator"
-
 import bcrypt from "bcryptjs"
 import User from "../models/userModel.js"
-
 import sendMail from "../configs/Mail.js"
 
-
 export const signUp=async (req,res)=>{
- 
     try {
-
         let {name,email,password,role}= req.body
         let existUser= await User.findOne({email})
         if(existUser){
@@ -29,15 +24,17 @@ export const signUp=async (req,res)=>{
             email ,
             password:hashPassword ,
             role,
-           
-            })
+        })
         let token = await genToken(user._id)
+        
+        // 👇 UPDATED COOKIE SETTINGS
         res.cookie("token", token, {
             httpOnly: true,
-            secure: false,          // 👈 change this
-            sameSite: "lax",        // 👈 change this
+            secure: true,          // Must be true for cross-origin
+            sameSite: "none",      // Must be none for Vercel -> Render communication
             maxAge: 7 * 24 * 60 * 60 * 1000
-            });
+        });
+        
         return res.status(201).json(user)
 
     } catch (error) {
@@ -58,12 +55,15 @@ export const login=async(req,res)=>{
             return res.status(400).json({message:"incorrect Password"})
         }
         let token =await genToken(user._id)
+        
+        // 👇 UPDATED COOKIE SETTINGS
         res.cookie("token", token, {
             httpOnly: true,
-            secure: false,          // 👈 change this
-            sameSite: "lax",        // 👈 change this
+            secure: true,          // Must be true for cross-origin
+            sameSite: "none",      // Must be none for Vercel -> Render communication
             maxAge: 7 * 24 * 60 * 60 * 1000
-            });
+        });
+            
         return res.status(200).json(user)
 
     } catch (error) {
@@ -72,18 +72,19 @@ export const login=async(req,res)=>{
     }
 }
 
-
-
-
 export const logOut = async(req,res)=>{
     try {
-        await res.clearCookie("token")
+        // 👇 UPDATED: Must provide the same options to successfully clear cross-origin cookies
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: true,
+            sameSite: "none"
+        });
         return res.status(200).json({message:"logOut Successfully"})
     } catch (error) {
         return res.status(500).json({message:`logout Error ${error}`})
     }
 }
-
 
 export const googleSignup = async (req,res) => {
     try {
@@ -91,24 +92,25 @@ export const googleSignup = async (req,res) => {
         let user= await User.findOne({email})
         if(!user){
             user = await User.create({
-            name , email ,role
-        })
+                name , email ,role
+            })
         }
         let token =await genToken(user._id)
-       res.cookie("token", token, {
-        httpOnly: true,
-        secure: false,          // 👈 change this
-        sameSite: "lax",        // 👈 change this
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        
+        // 👇 UPDATED COOKIE SETTINGS
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: true,          // Must be true for cross-origin
+            sameSite: "none",      // Must be none for Vercel -> Render communication
+            maxAge: 7 * 24 * 60 * 60 * 1000
         });
+        
         return res.status(200).json(user)
-
 
     } catch (error) {
         console.log(error)
          return res.status(500).json({message:`googleSignup  ${error}`})
     }
-    
 }
 
 export const sendOtp = async (req,res) => {
@@ -128,9 +130,7 @@ export const sendOtp = async (req,res) => {
         await sendMail(email,otp)
         return res.status(200).json({message:"Email Successfully send"})
     } catch (error) {
-
         return res.status(500).json({message:`send otp error ${error}`})
-        
     }
 }
 
@@ -146,8 +146,6 @@ export const verifyOtp = async (req,res) => {
         user.otpExpires=undefined
         await user.save()
         return res.status(200).json({message:"OTP varified "})
-
-
     } catch (error) {
          return res.status(500).json({message:`Varify otp error ${error}`})
     }

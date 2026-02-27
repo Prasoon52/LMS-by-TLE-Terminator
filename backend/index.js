@@ -26,23 +26,28 @@ dotenv.config()
 
 let port = process.env.PORT || 8000
 
-// 👇 UPDATED: Define allowed origins array 👇
 const allowedOrigins = [
     process.env.FRONTEND_URL , "http://localhost:5173",
     "https://lms-by-tle-terminator.vercel.app"
 ];
 
 let app = express()
-app.use(express.json())
-app.use(cookieParser())
 
-// 👇 UPDATED: Use the allowed origins array in CORS 👇
+// 🚨 THE MAGIC FIX FOR RENDER 🚨
+// This tells Express to trust the secure HTTPS proxy from Render
+app.set("trust proxy", 1);
+
+// 🚨 CORS MUST BE BEFORE ROUTES AND BODY PARSERS 🚨
 app.use(cors({
     origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
 }))
 
+app.use(express.json())
+app.use(cookieParser())
+
+// --- Routes ---
 app.use("/api/auth", authRouter)
 app.use("/api/user", userRouter)
 app.use("/api/course", courseRouter)

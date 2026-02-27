@@ -164,6 +164,13 @@ function Home() {
                 <span>Ask AI Tutor</span>
                 <FaArrowRight className="text-xs opacity-50 group-hover:translate-x-1 transition-transform" />
               </button>
+              <button
+                onClick={() => navigate("/ai-scheduler")}
+                className="px-8 py-4 rounded-2xl bg-indigo-600 text-white font-bold text-lg hover:bg-indigo-500 transition-all flex items-center justify-center gap-3 shadow-xl shadow-indigo-500/30 group border border-indigo-400"
+              >
+                <RiRobot2Fill className="group-hover:scale-110 transition-transform" />
+                <span>AI Scheduler</span>
+              </button>
             </motion.div>
           </motion.div>
         </div>
