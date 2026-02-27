@@ -24,10 +24,10 @@ import summaryRouter from "./routes/summaryRoute.js"
 
 dotenv.config()
 
-let port = process.env.PORT
+let port = process.env.PORT || 8000
 
 const allowedOrigins = [
-    process.env.FRONTEND_URL || "http://localhost:5173",
+    process.env.FRONTEND_URL , "http://localhost:5173",
     "https://lms-by-tle-terminator.vercel.app"
 ];
 
@@ -40,7 +40,8 @@ app.set("trust proxy", 1);
 // 🚨 CORS MUST BE BEFORE ROUTES AND BODY PARSERS 🚨
 app.use(cors({
     origin: allowedOrigins,
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
 }))
 
 app.use(express.json())
