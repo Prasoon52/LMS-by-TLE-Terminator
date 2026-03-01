@@ -1,0 +1,42 @@
+version: '2.5'
+
+services:
+  backend:
+    build: ./backend
+    container_name: lms_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+
+  stem-backend:
+    build: ./stem/stem_backend
+    container_name: lms_stem_backend
+    ports:
+      - "5001:5001"
+    env_file:
+      - ./stem/stem_backend/.env
+    restart: unless-stopped
+
+  stem-frontend:
+    build: ./stem/stem_frontend
+    container_name: lms_stem_frontend
+    ports:
+      - "3000:80"
+    env_file:
+      - ./stem/stem_frontend/.env
+    depends_on:
+      - stem-backend
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: lms_frontend
+    ports:
+      - "5173:80"
+    env_file:
+      - ./frontend/.env
+    restart: unless-stopped
+    depends_on:
+      - backend
