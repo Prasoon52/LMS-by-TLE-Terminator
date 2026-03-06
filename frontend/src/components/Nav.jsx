@@ -37,7 +37,22 @@ function Nav() {
       toast.error("Logout failed");
     }
   };
+  function openAITutor(){
 
+  const token = localStorage.getItem("token");
+
+  if(!token){
+    toast.error("Login required");
+    return;
+  }
+
+  console.log("🔐 LMS token:", token);
+
+  window.open(
+    `https://ai-tutor-sepia-eight.vercel.app/?token=${token}`,
+    "_blank"
+  );
+}
   useEffect(() => {
     setShowHam(false);
     setShowPro(false);
@@ -75,6 +90,17 @@ function Nav() {
         <div className="hidden lg:flex items-center gap-6">
 
           {/* FlowX Button */}
+          {/* AI Tutor Button */}
+            {userData && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={openAITutor}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-full font-bold text-xs uppercase tracking-wider hover:bg-emerald-500 hover:text-white transition-all mr-1"
+              >
+                🤖 AI Tutor
+              </motion.button>
+            )}
           {userData && (
             <motion.button
               whileHover={{ scale: 1.05 }}
