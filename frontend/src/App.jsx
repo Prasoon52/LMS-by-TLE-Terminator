@@ -47,7 +47,7 @@ axios.defaults.withCredentials = true;
 
 function App() {
   const { userData, isAuthChecked } = useSelector((state) => state.user);
-  useUsageTracker();
+  // useUsageTracker();
   // custom hooks must be called at top level
   getCurrentUser();
   getCouseData();
