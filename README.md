@@ -1,4 +1,4 @@
-# � LMS by TLE Terminator: The Future of Interactive STEM Learning
+# 🚀 LMS by TLE Terminator: The Future of Interactive STEM Learning
 
 **Tagline:** *Stop reading about science. Start experiencing it. Explore. Experiment. Dominate.*
 
@@ -21,9 +21,9 @@ We have built a comprehensive, gamified, and hyper-intelligent ecosystem that br
 
 ---
 
-## � Interactive Feature Walkthrough: Step Inside the Platform
+## 🎮 Interactive Feature Walkthrough: Step Inside the Platform
 
-### 1. � The Gamified Quiz Arena (The "Hit List")
+### 1. 🎯 The Gamified Quiz Arena (The "Hit List")
 
 **Imagine the satisfaction of crossing items off a to-do list, weaponized for learning.**
 
@@ -46,7 +46,7 @@ We have built a comprehensive, gamified, and hyper-intelligent ecosystem that br
 * **Smart Lecture Summarizer:** Don't have time to re-watch a 2-hour lecture? The AI instantly processes audio/video transcripts and generates bite-sized, high-yield summaries and key takeaways on demand.
 * **Mock Interviews & Exams:** Ask the AI to test you! It can dynamically generate multiple-choice questions, full-length practice exams, and conduct simulated interviews based strictly on the course material.
 
-### 4. �️ AI Attention & Stress Engine (Computer Vision)
+### 4. 👁️ AI Attention & Stress Engine (Computer Vision)
 
 **Are students actually learning, or are they silently burning out?**
 
@@ -415,28 +415,13 @@ Built by **TLE Terminator** — focused on impact, usability, and system‑level
 * Parent & mentor views with progress tracking
 * Automated attendance & engagement insights
 * Integration with government education systems
-* Duels for Quiz assessments (1v1 battles)
-* Advanced gamification elements (badges, achievements, XP system)
-* Multi-language support for global reach
 * Advanced proctoring features for online exams
-* Integration with popular LMS standards (SCORM, xAPI)
 * Blockchain-based certification system
 * AR/VR integration for immersive learning experiences 
 
 ---
 
-## 🧾 Contributing
 
-Contributions are welcome. Suggested workflow:
-
-1. Fork the repo
-3. Create a feature branch (`git checkout -b feature/your-feature`)
-4. Commit your changes (`git commit -m "feat: add ..."`)
-5. Push and open a pull request
-
-Please follow the existing code style (ESLint/Prettier if configured) and include meaningful commit messages.
-
----
 
 ## 👨‍💻 Team Members (Contributors)
 
