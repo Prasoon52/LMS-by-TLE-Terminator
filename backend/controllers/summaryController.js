@@ -1,12 +1,11 @@
 import axios from "axios";
-import { ai } from "../configs/ai.js";
+import { generateAI } from "../configs/ai.js";
 import Lecture from "../models/lectureModel.js";
 import dotenv from "dotenv";
-import { indexLectureSummary } from "./indexLectureSummary.js";
+
 dotenv.config();
 
 const summariseUrl = process.env.SUMMARISE_URL || "";
-
 
 async function getOrGenerateTranscription(lecture) {
   if (lecture.summary && lecture.summary.length > 0) {
@@ -18,25 +17,23 @@ async function getOrGenerateTranscription(lecture) {
     throw new Error("Audio not available for this lecture");
   }
 
-  const startResp = await axios.get(
-    `${summariseUrl}/transcribe`,
-    { params: { url: audioUrl } },
-  );
+  const startResp = await axios.get(`${summariseUrl}/transcribe`, {
+    params: { url: audioUrl },
+  });
 
   const jobId = startResp.data.job_id;
-  const MAX_ATTEMPTS = 100; // ~5 minutes max (100 attempts * 3s interval)
+  const MAX_ATTEMPTS = 100;
   const POLL_INTERVAL = 3000;
 
   let attempt = 0;
   let transcriptionResult = null;
 
-
   while (attempt < MAX_ATTEMPTS) {
     attempt++;
-    const statusResp = await axios.get(
-      `${summariseUrl}/status`,
-      { params: { job_id: jobId } },
-    );
+
+    const statusResp = await axios.get(`${summariseUrl}/status`, {
+      params: { job_id: jobId },
+    });
 
     const { status, result, error } = statusResp.data;
 
@@ -44,9 +41,11 @@ async function getOrGenerateTranscription(lecture) {
       transcriptionResult = result;
       break;
     }
+
     if (status === "failed") {
       throw new Error(error || "Transcription job failed");
     }
+
     await sleep(POLL_INTERVAL);
   }
 
@@ -54,27 +53,29 @@ async function getOrGenerateTranscription(lecture) {
     throw new Error("Transcription timed out");
   }
 
-  const prompt = `Summarize the following lecture transcription into a concise summary highlighting, the key points and important concepts in simple easy to understand terms:\n\n${transcriptionResult}\n\nSummary:`;
+  const prompt = `
+Summarize the following lecture transcription into a concise summary.
+Highlight key points and important concepts in simple easy-to-understand terms.
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents:prompt,
-    })
+LECTURE TRANSCRIPT:
+${transcriptionResult}
 
-  transcriptionResult = response.text;
+SUMMARY:
+`;
 
-  lecture.summary = transcriptionResult;
+  const summary = await generateAI(prompt);
+
+  lecture.summary = summary.trim();
   await lecture.save();
-  // await indexLectureSummary(lecture._id);
 
 
-  return transcriptionResult;
+  return lecture.summary;
 }
-
 
 export async function generateSummary(req, res) {
   try {
     const { lectureId } = req.body;
+
     const lecture = await Lecture.findById(lectureId);
 
     if (!lecture) {
@@ -86,17 +87,17 @@ export async function generateSummary(req, res) {
     return res.status(200).json({ summary });
   } catch (error) {
     console.error("Error in generateSummary:", error.message);
+
     if (error.message === "Audio not available for this lecture") {
       return res.status(400).json({ message: error.message });
     }
+
     return res.status(500).json({
       message: "Internal Server Error",
-      error: error.message, 
-      stack: error.stack, 
+      error: error.message,
     });
   }
 }
-
 
 export async function askDoubt(req, res) {
   try {
@@ -107,41 +108,47 @@ export async function askDoubt(req, res) {
     }
 
     const lecture = await Lecture.findById(lectureId);
+
     if (!lecture) {
       return res.status(404).json({ message: "Lecture not found" });
     }
 
-    let context="";
+    let context = "";
+
     try {
       context = await getOrGenerateTranscription(lecture);
-    }
-     catch (err) {
-      return res
-        .status(400)
-        .json({
-          message: "Could not retrieve lecture context: " + err.message,
-        });
+    } catch (err) {
+      return res.status(400).json({
+        message: "Could not retrieve lecture context: " + err.message,
+      });
     }
 
-    // 2. Send to LLM (OpenAI)
-    const prompt = `You are an expert tutor. Use the following lecture context to answer the question.\n\nLecture Context: ${context}\n\nQuestion: ${question}\n\nAnswer:`;
+    const prompt = `
+You are an expert tutor.
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents:prompt,
-        })
+Use the following lecture context to answer the question.
 
-    const answer = response.text;
-    
-    return res.status(200).json({ answer });
-  } 
-  catch (error) {
+LECTURE CONTEXT:
+${context}
+
+QUESTION:
+${question}
+
+Provide a clear and simple explanation.
+`;
+
+    const answer = await generateAI(prompt);
+
+    return res.status(200).json({ answer: answer.trim() });
+  } catch (error) {
     console.error("Error in askDoubt:", error);
-    return res.status(500).json({ message: "Internal Server Error" });
+
+    return res.status(500).json({
+      message: "Internal Server Error",
+    });
   }
 }
 
-// Utility
 async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
