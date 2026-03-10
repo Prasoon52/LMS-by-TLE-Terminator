@@ -28,12 +28,11 @@ async function getOrGenerateTranscription(lecture) {
   let attempt = 0;
   let transcriptionResult = null;
 
+  console.log(startResp.data);
   while (attempt < MAX_ATTEMPTS) {
     attempt++;
 
-    const statusResp = await axios.get(`${summariseUrl}/status`, {
-      params: { job_id: jobId },
-    });
+    const statusResp = await axios.get(`${summariseUrl}/status/${jobId}`);
 
     const { status, result, error } = statusResp.data;
 
@@ -67,7 +66,6 @@ SUMMARY:
 
   lecture.summary = summary.trim();
   await lecture.save();
-
 
   return lecture.summary;
 }
